@@ -8,7 +8,7 @@ Zdroj normy ISO690:2022: https://www.citace.com/Vyklad-CSN-ISO-690-2022.pdf
 
 ## Projekt
 
-github: 
+github: https://github.com/trineracz/citation-api
 
 spuštění: npm run dev
 
@@ -22,6 +22,6 @@ Např. http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-00505682
 
 uuid = uuid objektu
 
-form = html | txt
+form = html | txt | undefined (vraci json se vsim vcetne zdroje)
 
 lang = cs | en

@@ -22,7 +22,6 @@ async function fetchItemData(baseUrl: string, uuid: string, k7: boolean) {
   console.log('Fetching data', url);
   try {
     const response = await axios.get(url);
-    console.log('Data fetched successfully', response.data);
     return response.data;
   } catch (error) {
     throw new Error('Data not found or error in fetching data'); 
@@ -35,7 +34,6 @@ function generateCitation(data: any, lang: string, dlUrl: string): any {
 
   let citation: { html: string, txt: string } = { html: '', txt: '' };
   const apiData = data?.response?.docs?.[0];
-  console.log('Generating citation', data.response.docs[0]);
 
   // Zpracování autorů, titulu, vydavatele atd.
   const authors = getAuthors(apiData, lang);
@@ -92,7 +90,7 @@ function getAuthors(data: any, lang: string): string {
 
 // Hlavní funkce
 export async function getCitation(req: Request, res: Response) {
-  const { uuid, url, lang = 'cs', k7 = 'true', form } = req.query;
+  const { uuid, url, lang = 'cs', k7 = 'true', format = '' } = req.query;
   console.log('Request params', req.query);
 
   if (!uuid) {
@@ -107,7 +105,12 @@ export async function getCitation(req: Request, res: Response) {
     const responce = generateCitation(data, lang as string, dlUrl);
     const citation = responce[0];
     const source = responce[1];
-    return res.status(200).json({ citation, source });
+    if (!format) {
+      return res.status(200).json({ citation, source });
+    } else {
+      return res.status(200).json(citation[String(format)]);
+    }
+    // return res.status(200).json({ citation, source });
   } catch (error) {
     return res.status(500).json({ error: (error as any).message });
   }
