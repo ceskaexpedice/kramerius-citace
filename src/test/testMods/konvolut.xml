@@ -1,0 +1,140 @@
+<mods:modsCollection xmlns:mods="http://www.loc.gov/mods/v3" xmlns="info:fedora/fedora-system:def/foxml#" xmlns:foxml="info:fedora/fedora-system:def/foxml#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <desc>
+    <uuid>uuid:3cc6313d-8119-41c3-8666-f20ccda3b193</uuid>
+    <note>Autori maji jmeno rozdeleno na jmeno a prijmeni v MODSu.</note>
+  </desc>
+  <mods:mods xmlns:xlink="http://www.w3.org/1999/xlink" version="3.6">
+    <mods:genre>convolute</mods:genre>
+    <mods:genre authority="rdacontent">text</mods:genre>
+    <mods:genre authority="czenas">prvotisky</mods:genre>
+    <mods:identifier type="uuid">3cc6313d-8119-41c3-8666-f20ccda3b193</mods:identifier>
+    <mods:identifier type="barcode"/>
+    <mods:location>
+      <mods:physicalLocation authority="siglaADR">BOE950</mods:physicalLocation>
+      <mods:shelfLocator>R - P - 47</mods:shelfLocator>
+    </mods:location>
+    <mods:name type="personal" usage="primary">
+      <mods:namePart type="given">Eusebios z Caesareje</mods:namePart>
+      <mods:namePart type="termsOfAddress">biskup</mods:namePart>
+      <mods:namePart type="date">ca 263-ca 340</mods:namePart>
+      <mods:role>
+        <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+      </mods:role>
+      <mods:nameIdentifier>jo20000075401</mods:nameIdentifier>
+    </mods:name>
+    <mods:name type="personal">
+      <mods:namePart type="family">Rufinus Aquileiensis</mods:namePart>
+      <mods:namePart type="given"/>
+      <mods:namePart type="date">345-411</mods:namePart>
+      <mods:role>
+        <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+      </mods:role>
+    </mods:name>
+    <mods:recordInfo>
+      <mods:recordContentSource authority="marcorg">BOA001</mods:recordContentSource>
+      <mods:recordCreationDate encoding="iso8601">20240813T074301</mods:recordCreationDate>
+      <mods:recordChangeDate encoding="iso8601">20240813T074301</mods:recordChangeDate>
+      <mods:recordIdentifier source="CZ-BrMZ">mzk0300123269</mods:recordIdentifier>
+      <mods:languageOfCataloging>
+        <mods:languageTerm authority="iso639-2b" type="code">cze</mods:languageTerm>
+      </mods:languageOfCataloging>
+      <mods:recordOrigin>machine generated</mods:recordOrigin>
+      <mods:descriptionStandard>rda</mods:descriptionStandard>
+      <mods:recordInfoNote>Converted from MARCXML to MODS version 3.6 using MARC21slim2MODS3.xsl
+                (Revision 1.98 2018/02/09, ProArc patch 18.1352 2022/10/12)</mods:recordInfoNote>
+    </mods:recordInfo>
+    <mods:relatedItem type="series">
+      <mods:identifier type="uuid">001232706</mods:identifier>
+    </mods:relatedItem>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:part>
+        <mods:detail type="part">
+          <mods:number>s. 127, č. 448</mods:number>
+        </mods:detail>
+      </mods:part>
+      <mods:titleInfo>
+        <mods:title>Dokoupil, V. Soupis prvotisků z fondů Universitní knihovny v Brně. Katalog der Inkunabeln aus den Beständen der Universitätsbibliothek in Brünn,</mods:title>
+      </mods:titleInfo>
+    </mods:relatedItem>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:part>
+        <mods:detail type="part">
+          <mods:number>sv. 4. Klášterní knihovna benediktinů v Rajhradě, s. 14, č. 52</mods:number>
+        </mods:detail>
+      </mods:part>
+      <mods:titleInfo>
+        <mods:title>Dokoupil, V. Soupis prvotisků, spravovaných Universitní knihovnou v Brně,</mods:title>
+      </mods:titleInfo>
+    </mods:relatedItem>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:part>
+        <mods:detail type="part">
+          <mods:number>ie00127000</mods:number>
+        </mods:detail>
+      </mods:part>
+      <mods:titleInfo>
+        <mods:title>ISTC (The Incunabula Short-Title Catalogue),</mods:title>
+      </mods:titleInfo>
+    </mods:relatedItem>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:part>
+        <mods:detail type="part">
+          <mods:number>GW09437</mods:number>
+        </mods:detail>
+      </mods:part>
+      <mods:titleInfo>
+        <mods:title>www(Gesamtkatalog der Wiegendrucke),</mods:title>
+      </mods:titleInfo>
+    </mods:relatedItem>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:part>
+        <mods:detail type="part">
+          <mods:number>E-112</mods:number>
+        </mods:detail>
+      </mods:part>
+      <mods:titleInfo>
+        <mods:title>BSB-Ink (Inkunabelkatalog der Bayerischen Staatsbibliothek),</mods:title>
+      </mods:titleInfo>
+    </mods:relatedItem>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:part>
+        <mods:detail type="part">
+          <mods:number>6711*</mods:number>
+        </mods:detail>
+      </mods:part>
+      <mods:titleInfo>
+        <mods:title>Hain, L. Repertorium Bibliographicum, in quo libri omnes ab arte typographica inventa usque ad annum MD,</mods:title>
+      </mods:titleInfo>
+    </mods:relatedItem>
+    <mods:relatedItem>
+      <mods:location>
+        <mods:url displayLabel="Digitalizovaný dokument" note="Exemplář španělské knihovny - Biblioteca Virtual del Patrimonio Bibliográfico">http://bvpb.mcu.es/es/catalogo_imagenes/grupo.cmd?path=5920</mods:url>
+      </mods:location>
+    </mods:relatedItem>
+    <mods:relatedItem>
+      <mods:location>
+        <mods:url displayLabel="Digitalizovaný dokument" note="Exemplář španělské knihovny - Biblioteca Virtual del Patrimonio Bibliográfico">http://bvpb.mcu.es/es/catalogo_imagenes/grupo.cmd?path=11003386</mods:url>
+      </mods:location>
+    </mods:relatedItem>
+    <mods:relatedItem>
+      <mods:location>
+        <mods:url displayLabel="Digitalizovaný dokument" note="Exemplář Bibliothèque Mazarine, Paris">http://mazarinum.bibliotheque-mazarine.fr/records/item/1716-redirection</mods:url>
+      </mods:location>
+    </mods:relatedItem>
+    <mods:subject authority="Konspekt">
+      <mods:topic>Dějiny křesťanské církve</mods:topic>
+    </mods:subject>
+    <mods:subject authority="Konspekt">
+      <mods:topic>Prvotisky</mods:topic>
+    </mods:subject>
+    <mods:subject authority="czenas">
+      <mods:topic>církevní dějiny</mods:topic>
+    </mods:subject>
+    <mods:subject authority="czenas">
+      <mods:topic>historické knihovní fondy</mods:topic>
+    </mods:subject>
+    <mods:titleInfo>
+      <mods:title>Konvolut začínající dílem: Historia ecclesiastica</mods:title>
+    </mods:titleInfo>
+  </mods:mods>
+</mods:modsCollection>

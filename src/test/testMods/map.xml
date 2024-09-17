@@ -1,0 +1,107 @@
+<mods:modsCollection xmlns:mods="http://www.loc.gov/mods/v3" xmlns="info:fedora/fedora-system:def/foxml#" xmlns:foxml="info:fedora/fedora-system:def/foxml#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <mods:mods>
+    <mods:titleInfo>
+      <mods:title>Moraviae, qvae olim Marcomannorvm sedes, corographia</mods:title>
+    </mods:titleInfo>
+    <mods:name type="personal" usage="primary">
+      <mods:namePart>Fabricius, Pavel</mods:namePart>
+      <mods:namePart type="date">1519-1588</mods:namePart>
+      <mods:role>
+        <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+      </mods:role>
+    </mods:name>
+    <mods:name type="personal">
+      <mods:namePart>Ortelius, Abraham</mods:namePart>
+      <mods:namePart type="date">1527-1598</mods:namePart>
+      <mods:role>
+        <mods:roleTerm authority="marcrelator" type="code">pbl</mods:roleTerm>
+      </mods:role>
+    </mods:name>
+    <mods:typeOfResource>cartographic</mods:typeOfResource>
+    <mods:genre authority="marcgt">map</mods:genre>
+    <mods:genre authority="czenas">historické mapy</mods:genre>
+    <mods:originInfo>
+      <mods:place>
+        <mods:placeTerm authority="marccountry" type="code">be</mods:placeTerm>
+      </mods:place>
+      <mods:place>
+        <mods:placeTerm type="text">Antwerpen</mods:placeTerm>
+      </mods:place>
+      <mods:publisher>Coppens van Diest</mods:publisher>
+      <mods:dateIssued>1573]</mods:dateIssued>
+      <mods:dateIssued encoding="marc">1573</mods:dateIssued>
+      <mods:issuance>single unit</mods:issuance>
+    </mods:originInfo>
+    <mods:language>
+      <mods:languageTerm authority="iso639-2b" type="code">lat</mods:languageTerm>
+    </mods:language>
+    <mods:physicalDescription>
+      <mods:form authority="gmd">kartografický dokument</mods:form>
+      <mods:form authority="marccategory">map</mods:form>
+      <mods:form authority="marcsmd">map</mods:form>
+      <mods:extent>1 mapa : mědirytina ; 33 x 45 cm na listu 49 x 60 cm</mods:extent>
+    </mods:physicalDescription>
+    <mods:note type="statement of responsibility">a d. Paulo Fabritio medico et mathematico descripta; et A. generosis Moraviae baronibus qvibvsdam correcta</mods:note>
+    <mods:note>Na rubu mapy na jedné straně latinský komentář vysázený v jednom sloupci a uvozený nadpisem "Moravia"</mods:note>
+    <mods:note>Výzdoba: V levém horním rohu ozdobná kartuše s názvem mapy, v pravém dolním rohu měřítko, u horního okraje mapy legenda začleněna legenda na draperii, v mapovém rámci geografické souřadnice, vloženo do ozdobného rámce</mods:note>
+    <mods:subject>
+      <mods:geographicCode authority="marcgac">e-xr---</mods:geographicCode>
+      <mods:geographicCode authority="czenas">e-xr-mr</mods:geographicCode>
+    </mods:subject>
+    <mods:subject>
+      <mods:cartographics>
+        <mods:scale>Měřítko [ca 1:450 000]. 7,5 cm = 4 Parvas Geographica. 8,2 cm = 4 Morauica Hungarica</mods:scale>
+      </mods:cartographics>
+      <mods:cartographics>
+        <mods:coordinates>(015°15´00" v.d.--016°25´12" v.d./050°29´42" s.š.--048°36´15" s.š.)</mods:coordinates>
+      </mods:cartographics>
+    </mods:subject>
+    <mods:subject authority="czenas">
+      <mods:name type="corporate">
+        <mods:namePart>Moravská zemská knihovna (Brno, Česko).</mods:namePart>
+        <mods:namePart>Mapová sbírka B.P. Molla</mods:namePart>
+      </mods:name>
+    </mods:subject>
+    <mods:subject>
+      <mods:topic>Mollova mapová sbírka</mods:topic>
+    </mods:subject>
+    <mods:subject authority="czenas">
+      <mods:topic>mapové sbírky</mods:topic>
+      <mods:geographic>Česko</mods:geographic>
+    </mods:subject>
+    <mods:subject authority="czenas">
+      <mods:geographic>Morava (Česko)</mods:geographic>
+    </mods:subject>
+    <mods:classification authority="udc">(084.3)</mods:classification>
+    <mods:classification authority="udc">(437.32)</mods:classification>
+    <mods:classification authority="udc">912.43:069.5</mods:classification>
+    <mods:location>
+      <mods:physicalLocation authority="siglaADR">BOA001</mods:physicalLocation>
+      <mods:shelfLocator>Moll-0001.781</mods:shelfLocator>
+      <mods:url displayLabel="Digitalizovaný dokument" usage="primary display">http://www.digitalniknihovna.cz/mzk/uuid/uuid:498594c1-59ca-4c77-a69c-cd2c41073b4f</mods:url>
+    </mods:location>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:titleInfo>
+        <mods:title>IKAR</mods:title>
+      </mods:titleInfo>
+      <mods:note/>
+    </mods:relatedItem>
+    <mods:relatedItem type="isReferencedBy">
+      <mods:titleInfo>
+        <mods:title>Roubík, F. Soupis map českých zemí,</mods:title>
+      </mods:titleInfo>
+      <mods:note>II, č. 1442</mods:note>
+    </mods:relatedItem>
+    <mods:recordInfo>
+      <mods:descriptionStandard>aacr</mods:descriptionStandard>
+      <mods:recordContentSource authority="marcorg">BOA001</mods:recordContentSource>
+      <mods:recordCreationDate encoding="marc">050111</mods:recordCreationDate>
+      <mods:recordChangeDate encoding="iso8601">20110728120253.0</mods:recordChangeDate>
+      <mods:recordIdentifier source="CZ BrMZK">mzk03000904116</mods:recordIdentifier>
+      <mods:recordOrigin>machine generated</mods:recordOrigin>
+      <mods:languageOfCataloging>
+        <mods:languageTerm authority="iso639-2b" type="code">cze</mods:languageTerm>
+      </mods:languageOfCataloging>
+    </mods:recordInfo>
+  </mods:mods>
+</mods:modsCollection>

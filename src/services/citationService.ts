@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import { getLocale } from '../locales';
 import { parseStringPromise } from 'xml2js';
-import { parseModsAuthors, parseModsTitles, parseModsPublisher } from './modsParser';
+import { parseModsAuthors, parseModsTitles, parseModsPublisher, parseModsCartographics } from './modsParser';
 
 const KRAMERIUS_API_URLS = {
   default: 'https://api.kramerius.mzk.cz',
@@ -26,14 +26,14 @@ async function fetchItemData(baseUrl: string, uuid: string, k7: boolean) {
   try {
     const response = await axios.get(url);
     const mods_response = await axios.get(mods_url);
-    const parsedMods = await parseStringPromise(mods_response.data, { explicitArray: false });
+    const parsedMods = await parseStringPromise(mods_response.data, { explicitArray: true });
     return [response.data, parsedMods];
   } catch (error) {
     throw new Error('Data not found or error in fetching data'); 
   }
 }
 
-// Hlavní funkce pro získání citace
+// Hlavní funkce pro získání metadat a vraceni citace
 export async function getCitation(req: Request, res: Response) {
   const { uuid, url, lang = 'cs', k7 = 'true', format = '' } = req.query;
   console.log('Request params', req.query);
@@ -66,22 +66,58 @@ export async function getCitation(req: Request, res: Response) {
 async function generateCitation(data: any, lang: string, dlUrl: string): Promise<any> {
   const locale = getLocale(lang);
 
-  let citation: { html: string, txt: string } = { html: '', txt: '' };
+  let citation: { html?: string, txt?: string } = { html: '', txt: '' };
   const apiData = data[0].response?.docs?.[0];
   const modsData = data[1];
+  const model = apiData['model'];
+  let authors = '';
+  let title = '';
+  let publication = '';
+  let isbn = '';
+  let availibility = '';
+  let scale = '';
 
-  // Zpracování autorů, titulu, vydavatele atd.
-  const authors = await parseModsAuthors(modsData, lang);
-  const title = await parseModsTitles(modsData, lang);
-  const publication = await parseModsPublisher(modsData, lang);
-  const availibility = locale['available'] + dlUrl + apiData['own_pid_path'] || '';
+  if (model === 'monograph' || model === 'convolute' || model === 'monographunit' || model === 'map') {
+    authors = await parseModsAuthors(modsData, lang);
+    title = await parseModsTitles(modsData, lang);
+    publication = await parseModsPublisher(modsData, lang);
+    scale = await parseModsCartographics(modsData, lang);
+    if (apiData['id_isbn'] !== undefined) {
+      isbn = 'ISBN ' + apiData['id_isbn'][0] + '.' || '';
+    }
+    availibility = locale['available'] + dlUrl + apiData['pid'] || '';
+  }
+
+  // Sestaveni citace
+  if (authors) {
+    citation.txt += `${authors} `;
+    citation.html += `${authors} `;
+  }
+  if (title) {
+    citation.txt += `${title} `;
+    citation.html += `<i>${title}</i> `;
+  }
+  if (scale) {
+    citation.txt += `${scale} `;
+    citation.html += `${scale} `;
+  }
+  if (publication) {
+    citation.txt += `${publication} `;
+    citation.html += `${publication} `;
+  }
+  if (isbn) {
+    citation.txt += `${isbn} `;
+    citation.html += `${isbn} `;
+  }
+  if (availibility) {
+    citation.txt += `${availibility}`;
+    citation.html += `${availibility}`;
+  }
   // https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
-
-  citation.txt += `${authors} ${title}. ${publication} ${availibility}`;
-  citation.html += `<div>${authors} <i>${title}.</i> ${publication} ${availibility} </div>`;
 
   return [citation, apiData, modsData];
 }
+
 
 
 

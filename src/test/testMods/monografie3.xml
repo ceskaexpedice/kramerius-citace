@@ -1,0 +1,71 @@
+<mods:modsCollection xmlns:mods="http://www.loc.gov/mods/v3" xmlns="info:fedora/fedora-system:def/foxml#" xmlns:foxml="info:fedora/fedora-system:def/foxml#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <desc>
+    <uuid>uuid:db2ab650-5b9c-11ef-9a22-5ef3fc9bb22f</uuid>
+    <note>Monografie s jednim autorem.</note>
+  </desc>
+  <mods:mods xmlns:ns4="info:fedora/fedora-system:def/foxml#" ID="MODS_VOLUME_0001">
+    <mods:titleInfo>
+      <mods:title>Závodní cyklistika</mods:title>
+    </mods:titleInfo>
+    <mods:name type="personal" usage="primary">
+      <mods:namePart>Cihlář, Jaroslav</mods:namePart>
+      <mods:namePart type="date">1924-</mods:namePart>
+      <mods:role>
+        <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+      </mods:role>
+      <mods:nameIdentifier>jk01020687</mods:nameIdentifier>
+    </mods:name>
+    <mods:typeOfResource>text</mods:typeOfResource>
+    <mods:genre>volume</mods:genre>
+    <mods:originInfo>
+      <mods:place>
+        <mods:placeTerm authority="marccountry" type="code">xr</mods:placeTerm>
+      </mods:place>
+      <mods:place>
+        <mods:placeTerm type="text">Praha</mods:placeTerm>
+      </mods:place>
+      <mods:publisher>Olympia</mods:publisher>
+      <mods:dateIssued>1976</mods:dateIssued>
+      <mods:edition>1. vyd.</mods:edition>
+      <mods:issuance>single unit</mods:issuance>
+    </mods:originInfo>
+    <mods:language>
+      <mods:languageTerm authority="iso639-2b" type="code">cze</mods:languageTerm>
+    </mods:language>
+    <mods:physicalDescription>
+      <mods:form authority="marcform">print</mods:form>
+      <mods:form authority="marccategory">text</mods:form>
+      <mods:form authority="marcsmd">regular print</mods:form>
+      <mods:extent>208 s., [16] s. obr. příl. : il. ; 21 cm</mods:extent>
+    </mods:physicalDescription>
+    <mods:abstract>Učebnice využívá nejen zkušeností našich a zahraničních závodníků, ale opírá se také o výsledky teoretických prací a vědeckého výzkumu. Po charakteristice závodní cyklistiky probírá jednotlivé složky základního tréninku apopisuje technickou, tělesnou, taktickou a psychologickou přípravu při speciálním tréninku. Uvádí také galerii významných cyklistických osobností a přehledné tabulky výsledků.</mods:abstract>
+    <mods:note type="statement of responsibility">Jaroslav Cihlář ; obr. Vilém Cihelka</mods:note>
+    <mods:note>Spoluvyd. Sport, Bratislava</mods:note>
+    <mods:note>5000 výt.</mods:note>
+    <mods:classification authority="udc" edition="Konspekt">796.61(075)</mods:classification>
+    <mods:location>
+      <mods:physicalLocation authority="siglaADR">ABA001</mods:physicalLocation>
+      <mods:shelfLocator>I 230938</mods:shelfLocator>
+    </mods:location>
+    <mods:relatedItem type="series">
+      <mods:titleInfo>
+        <mods:title>Sport</mods:title>
+      </mods:titleInfo>
+    </mods:relatedItem>
+    <mods:identifier type="urnnbn">urn:nbn:cz:nk-007x02</mods:identifier>
+    <mods:identifier type="barCode">1002886292</mods:identifier>
+    <mods:identifier type="uuid">db2ab650-5b9c-11ef-9a22-5ef3fc9bb22f</mods:identifier>
+    <mods:identifier type="ccnb">cnb000459104</mods:identifier>
+    <mods:identifier type="oclc">42123022</mods:identifier>
+    <mods:recordInfo>
+      <mods:recordContentSource authority="marcorg">ABA001</mods:recordContentSource>
+      <mods:recordCreationDate encoding="iso8601">1997-06-16T00:00:00Z</mods:recordCreationDate>
+      <mods:recordChangeDate encoding="iso8601">2009-09-22T14:51:19Z</mods:recordChangeDate>
+      <mods:recordIdentifier source="CZ-PrNK">bk197605124</mods:recordIdentifier>
+      <mods:recordOrigin>machine generated</mods:recordOrigin>
+      <mods:languageOfCataloging>
+        <mods:languageTerm authority="iso639-2b" type="code">cze</mods:languageTerm>
+      </mods:languageOfCataloging>
+    </mods:recordInfo>
+  </mods:mods>
+</mods:modsCollection>
