@@ -16,7 +16,6 @@ spuštění (dev): npm run dev
 spuštění (produkce): npm run start
 
 
-
 ## Popis API
 
 /test
@@ -34,3 +33,9 @@ uuid = uuid objektu
 format = html | txt | undefined (vraci json se vsim vcetne zdroje)
 
 lang = cs | en
+
+### Docker
+
+Vybuildění docker image: docker build -t citation-api .
+
+Spuštění image: docker run -p 3000:3000 citation-api
