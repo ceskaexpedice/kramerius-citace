@@ -10,7 +10,10 @@ Zdroj normy ISO690:2022: https://www.citace.com/Vyklad-CSN-ISO-690-2022.pdf
 
 github: https://github.com/trineracz/citation-api
 
-spuštění: npm run dev
+instalace závislostí: npm install
+
+spuštění (dev): npm run dev
+spuštění (produkce): npm run start
 
 
 
