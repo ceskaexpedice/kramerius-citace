@@ -71,3 +71,9 @@ docker run -p 3000:3000 citation-api
 docker pull martinrehanek/citation-api:latest
 docker run -p 3000:3000 martinrehanek/citation-api
 ```
+
+##### Na nestandardním portu
+Vnější (host) port lze změnit takto:
+```
+docker run -p 1234:3000 martinrehanek/citation-api
+```
