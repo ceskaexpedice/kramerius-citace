@@ -46,12 +46,28 @@ npm run start
 
 ### Docker
 
-#### Build Docker image
+#### Distribuce Docker image
+
+##### Build
 ```
 docker build -t citation-api .
 ```
 
+##### Hostování 
+```
+docker tag citation-api martinrehanek/citation-api:latest
+docker push martinrehanek/citation-api:latest
+```
+
 #### Spuštění Docker image
+
+##### Lokální image
 ```
 docker run -p 3000:3000 citation-api
+```
+
+##### Docker Hub
+```
+docker pull martinrehanek/citation-api:latest
+docker run -p 3000:3000 martinrehanek/citation-api
 ```
