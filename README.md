@@ -4,6 +4,7 @@
 
 Zdroj normy ISO690:2022: https://www.citace.com/Vyklad-CSN-ISO-690-2022.pdf
 
+https://citace.zcu.cz/home.html
 
 
 ## Projekt
@@ -28,6 +29,11 @@ Např. http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-00505682
 
 uuid = uuid objektu
 
-format = html | txt | undefined (vraci json se vsim vcetne zdroje)
+format = html | txt | bibtex | undefined (vraci json se vsim vcetne zdroje)
 
 lang = cs | en
+
+### Bibtex
+
+https://bibtex.eu/cs/types/
+https://bibtex.online/

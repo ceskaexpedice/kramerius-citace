@@ -2,5 +2,8 @@
     "available": "Available from: ",
     "page": "p.",
     "and": "and",
-    "part": "Part"
+    "part": "Part",
+    "volume": "vol.",
+    "issue": "no.",
+    "pages": "p."
 }
