@@ -94,21 +94,21 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
             }
             if (subTitle && String(subTitle).length > 0) {
                 console.log('subTitle', subTitle);
-                titlesList += (`: ${subTitle}.`);
+                titlesList += (`: ${subTitle}`);
             } else if (String(title).length > 0) {
-                titlesList += ('.');
+                // titlesList += ('.');
             }
             if (partNumber && String(partNumber).length > 0) {
                 titlesList += (` ${locale['part']} ${partNumber}`);
-                if (!String(partNumber).endsWith('.')) {
-                    titlesList += ('.');
-                }
+                // if (!String(partNumber).endsWith('.')) {
+                //     titlesList += ('.');
+                // }
             }
             if (partName && String(partName).length > 0) {
                 titlesList += (` ${partName}`);
-                if (!String(partName).endsWith('.')) {
-                    titlesList += ('.');
-                }
+                // if (!String(partName).endsWith('.')) {
+                //     titlesList += ('.');
+                // }
             }
         }
     });
@@ -125,17 +125,27 @@ export async function parsePeriodicalTitle(mods: any, apiData: any, lang: any): 
 
     if (apiData['model'] === 'periodicalitem') {
         issueDate = apiData['date.str'] || '';
+        return [titleName, issueDate];
     }
     if (apiData['model'] === 'article') {
         issueDate = apiData['date.str'] || '';
         articleName = apiData['title.search'].trim() || '';
         return [titleName, issueDate, articleName];
     } else {
-        return [titleName, issueDate];
+        return [titleName]; 
     }
 }
 
-export async function parsePeriodicalPublisher(modsData: any, apiData: any, lang: any, apiDataTitle: any, modsTitle: any, apiDataVolume?: any, modsVolume?: any, apiDataIssue?: any, modsIssue?: any): Promise<any> {
+export async function parsePeriodicalPublisher(modsData: any, 
+                                               apiData: any, 
+                                               lang: any, 
+                                               apiDataTitle: any, 
+                                               modsTitle: any, 
+                                               apiDataVolume?: any, 
+                                               modsVolume?: any, 
+                                               apiDataIssue?: any, 
+                                               modsIssue?: any, 
+                                               pageNumber?: any): Promise<any> {
     let locale = getLocale(lang);
     let publicationData = modsTitle["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
     let publisher = '';
@@ -144,7 +154,6 @@ export async function parsePeriodicalPublisher(modsData: any, apiData: any, lang
     let volumeDate = '';
     let issue = '';
     let issueDate = '';
-    let articleName = '';
     let articlePageStart = '';
     let articlePageEnd = '';
 
@@ -188,7 +197,6 @@ export async function parsePeriodicalPublisher(modsData: any, apiData: any, lang
         volumeDate = apiDataVolume['date.str'] || '';
         issue = apiDataIssue['part.number.str'] || '';
         issueDate = apiDataIssue['date.str'] || '';
-        articleName = apiData['title.search'] || '';
         if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0]) {
             articlePageStart = modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0] || '';
             console.log('articlePageStart', articlePageStart);
@@ -237,12 +245,19 @@ export async function parsePeriodicalPublisher(modsData: any, apiData: any, lang
             txt += '.';
         }
     }
+    if (pageNumber && pageNumber.length > 0) {
+        txt += `, ${locale['page']} ${pageNumber}.`;
+        bibtex += `, pages = {${pageNumber}}`;
+    } else {
+        txt += '.';
+    }
 
     return {'txt': txt, 'bibtex': bibtex};
 }
 
 
-export async function parseModsPublisher(mods: any, lang: any): Promise<any> {
+export async function parseModsPublisher(mods: any, lang: any, pageNumber?: string): Promise<any> {
+    let locale = getLocale(lang);
     if (mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"] && mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0]) {
         const originInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
         // console.log('originInfo', JSON.stringify(originInfo, null, 2));
@@ -276,6 +291,7 @@ export async function parseModsPublisher(mods: any, lang: any): Promise<any> {
 
         // Získání roku vydání
         const dateIssued = originInfo["mods:dateIssued"] || '';
+        console.log('dateIssued', dateIssued);
         let dateIssuedString = '';
         let dateIssuedStringStart = '';
         let dateIssuedStringEnd = '';
@@ -285,7 +301,6 @@ export async function parseModsPublisher(mods: any, lang: any): Promise<any> {
             dateIssued.forEach((date: any) => {
                 if (date && date?.$?.encoding === 'marc') {
                     if (date?.$?.point === 'start') {
-                        console.log('dateStart', date);
                         dateIssuedStringStart = date._.trim() || '';
                     } else if (date?.$?.point === 'end') {
                         dateIssuedStringEnd = date._.trim() || '';
@@ -331,33 +346,41 @@ export async function parseModsPublisher(mods: any, lang: any): Promise<any> {
         }
 
         if (dateIssuedString && dateIssuedString.length > 0) {
+            console.log('dateIssuedString', dateIssuedString);
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
-                txt += `, ${dateIssuedString}.`;
+                txt += `, ${dateIssuedString}`;
+                console.log('txt', txt);
             } else {
-                txt += `${dateIssuedString}.`;
+                txt += `${dateIssuedString}`;
             }
             bibtex += `year = {${dateIssuedString}}, `;
         } else if (dateIssuedStringStart || dateIssuedStringEnd) {
-            console.log('dateIssuedStringStart', dateIssuedStringStart);
+            // console.log('dateIssuedStringStart', dateIssuedStringStart);
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
-                txt += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}.`;
-                console.log('txt', txt);
+                txt += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+                // console.log('txt', txt);
             } else {
-                txt += `${dateIssuedStringStart}-${dateIssuedStringEnd}.`;
-                console.log('txt', txt);
+                txt += `${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+                // console.log('txt', txt);
             }
             bibtex += `year = {${dateIssuedStringStart}-${dateIssuedStringEnd}}, `;
         } else if (dateIssuedStringOther && dateIssuedStringOther.length > 0) {
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
-                txt += `, ${dateIssuedStringOther}.`;
+                txt += `, ${dateIssuedStringOther}`;
             } else {
-                txt += `${dateIssuedStringOther}.`;
+                txt += `${dateIssuedStringOther}`;
             }
             bibtex += `year = {${dateIssuedStringOther}}, `;
-        } 
-        // else {
-        //     txt += '.';
-        // }
+        }
+
+        if (pageNumber && pageNumber.length > 0) {
+            console.log('pageNumber', pageNumber);
+            txt += `, ${locale['page']} ${pageNumber}.`;
+            console.log('txt', txt);
+        } else {
+            txt += '.';
+        }
+
         // Pokud nemáme žádná data, vrátíme prázdný řetězec, jinak vrátíme výsledek
         return {'txt': txt.trim() ? txt : '', 
                 'bibtex': bibtex };

@@ -2,7 +2,9 @@
 
 ## Norma
 
-Zdroj normy ISO690:2022: [ISO690:2022 PDF](https://www.citace.com/Vyklad-CSN-ISO-690-2022.pdf)
+Zdroj normy ISO690:2022: [Výklad ISO690:2022 PDF](https://www.citace.com/Vyklad-CSN-ISO-690-2022.pdf)
+
+Příklady: [Příklady ISO690:2022](https://citace.zcu.cz/home.html)
 
 ## Projekt
 
@@ -10,21 +12,17 @@ GitHub: [https://github.com/trineracz/citation-api](https://github.com/trineracz
 
 ## Popis API
 
-### `/test`
-
-Např. `http://localhost:3000/test`
-
-Spustí testy na předpřipravených datech.
-
 ### `/citation`
 
-Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&form=html&lang=cs`
+Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&form=html&lang=cs&`
 
 #### Parametry:
 
-- **uuid**: UUID objektu.
-- **format**: `html | txt | undefined` (vrací JSON se vším včetně zdroje).
+- **uuid**: UUID objektu. Povinny parametr.
+- **format**: `html | txt | bibtex | undefined` (vrací JSON se vším včetně zdroje).
 - **lang**: `cs | en`
+- **ref**: `true | false | undefined` citace s / bez odkazu na digitální dokument (undefined = false)
+- **debug**: `true | false | undefined` citace s api a MODS dokumentu pro kontrolu (undefined = false)
 
 
 ## Provoz

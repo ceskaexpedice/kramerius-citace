@@ -35,7 +35,7 @@ async function fetchItemData(baseUrl: string, uuid: string, k7: boolean) {
 
 // Hlavní funkce pro získání metadat a vraceni citace
 export async function getCitation(req: Request, res: Response) {
-  const { uuid, url, lang = 'cs', k7 = 'true', format = '' } = req.query;
+  const { uuid, url, lang = 'cs', k7 = 'true', format = '', ref = 'false', debug = 'false' } = req.query;
   // console.log('Request params', req.query);
 
   if (!uuid) {
@@ -47,14 +47,22 @@ export async function getCitation(req: Request, res: Response) {
 
   try {
     const data = await fetchItemData(baseUrl as string, uuid as string, k7 === 'true');
-    const responce = await generateCitation(data, lang as string, dlUrl);
+    const responce = await generateCitation(data, lang as string, dlUrl, ref as string);
     const citation = responce[0];
     const apiSource = responce[1];
     const modsSource = responce[2];
     if (!format) {
-      return res.status(200).json({ citation, apiSource, modsSource });
+      if (debug === 'true') {
+        return res.status(200).json({ citation, apiSource, modsSource });
+      } else {
+        return res.status(200).json(citation);
+      }
     } else {
-      return res.status(200).json(citation[String(format)]);
+      if (debug === 'true') {
+        return res.status(200).json({ citation, apiSource, modsSource });
+      } else {
+        return res.status(200).json(citation[String(format)]);
+      }
     }
     // return res.status(200).json({ citation, source });
   } catch (error) {
@@ -64,13 +72,14 @@ export async function getCitation(req: Request, res: Response) {
 }
 
 // Generování citace
-async function generateCitation(data: any, lang: string, dlUrl: string): Promise<any> {
+async function generateCitation(data: any, lang: string, dlUrl: string, ref: string): Promise<any> {
   const locale = getLocale(lang);
 
   let citation: { html?: string, txt?: string, bibtex?: string } = { html: '', txt: '', bibtex: '' };
   const apiData = data[0].response?.docs?.[0];
   const modsData = data[1];
   const model = apiData['model'];
+
   let authors;
   let title;
   let publication;
@@ -80,8 +89,7 @@ async function generateCitation(data: any, lang: string, dlUrl: string): Promise
   let scale;
   let physicalDesc;
 
-  // MONOGRAFICKE DOKUMENTY
-
+  // MONOGRAFICKE DOKUMENTY + TITUL PERIODIKA
   if (model === 'monograph' || 
       model === 'convolute' || 
       model === 'monographunit' || 
@@ -90,100 +98,91 @@ async function generateCitation(data: any, lang: string, dlUrl: string): Promise
       model === 'sheetmusic' ||
       model === 'archive' ||
       model === 'manuscript' ||
-      model === 'periodical') {
-    authors = await parseModsAuthors(modsData, lang);
-    console.log('Authors', authors);
-    title = await parseModsTitles(modsData, lang);
-    publication = await parseModsPublisher(modsData, lang);
-    console.log('Publication', publication);
-    scale = await parseModsCartographics(modsData, lang);
-    physicalDesc = await parsePhysicalDescription(modsData, lang);
-    if (apiData['id_isbn'] !== undefined) {
-      isbn = 'ISBN ' + apiData['id_isbn'][0] + '.' || '';
-    }
-    if (apiData['id_issn'] !== undefined) {
-      issn = 'ISSN ' + apiData['id_issn'][0] + '.' || '';
-    }
-    availibility = dlUrl + apiData['pid'] || '';
-  }
-  // PERIODIKA
-
-  // Periodical VOLUME
-  if (model === 'periodicalvolume') {
-    const baseUrl = KRAMERIUS_API_URLS.default;
-    const k7 = true;
+      model === 'periodical' ||
+     (model === 'page' && (apiData['own_parent.model'] === 'monograph' || apiData['own_parent.model'] === 'convolute' || apiData['own_parent.model'] === 'monographunit' || apiData['own_parent.model'] === 'map' || apiData['own_parent.model'] === 'graphic' || apiData['own_parent.model'] === 'sheetmusic' || apiData['own_parent.model'] === 'archive' || apiData['own_parent.model'] === 'manuscript'))) {
     
-    // Získání dat o nadřazeném titulu
-    let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
-    let apiDataTitle = titleRequest[0].response.docs[0];
-    let modsTitle = titleRequest[1];
+    let monographicData;
 
-    // Vygenerování částí citace    
-    title = await parsePeriodicalTitle(modsData, apiData, lang);
-    publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle);
-    if (apiDataTitle['id_issn'] !== undefined) {
-      issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
+    if (model === 'page') {
+      let pageNumber = apiData['page.number'] || '';
+      data = await fetchItemData(KRAMERIUS_API_URLS.default, apiData['own_parent.pid'], true);
+      monographicData = await getMonographicData(data, lang, dlUrl, pageNumber);
+    } else {
+      monographicData = await getMonographicData(data, lang, dlUrl);
     }
-    availibility = dlUrl + apiData['pid'] || '';
+    if (!monographicData) {
+      throw new Error('Data not found');
+    }
+    authors = monographicData.authors;
+    title = monographicData.title;
+    publication = monographicData.publication;
+    scale = monographicData.scale;
+    physicalDesc = monographicData.physicalDesc;
+    isbn = monographicData.isbn;
+    issn = monographicData.issn;
+    availibility = monographicData.availibility;
+  }
+
+  // CASTI PERIODIKA
+  // Periodical VOLUME
+  if (model === 'periodicalvolume' ||
+      (model === 'page' && apiData['own_parent.model'] === 'periodicalvolume')) {
+
+    let volumeData;
+    
+    if (model === 'page') {
+      let pageNumber = apiData['page.number'] || '';
+      data = await fetchItemData(KRAMERIUS_API_URLS.default, apiData['own_parent.pid'], true);
+      volumeData = await getPeriodicalVolumeData(data, lang, dlUrl, pageNumber);
+    } else {
+      volumeData = await getPeriodicalVolumeData(data, lang, dlUrl);
+    }
+    if (!volumeData) {
+      throw new Error('Data not found');
+    }
+    title = volumeData.title;
+    publication = volumeData.publication;
+    issn = volumeData.issn;
+    availibility = volumeData.availibility;
   }
 
   // Periodical ISSUE
-  if (model === 'periodicalitem') {
-    const baseUrl = KRAMERIUS_API_URLS.default;
-    const k7 = true;
-    
-    // Získání dat o nadřazeném titulu
-    let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
-    let apiDataTitle = titleRequest[0].response.docs[0];
-    let modsTitle = titleRequest[1];
-    // Získání dat o nadřazeném volume
-    let volumeUUID = apiData['own_parent.pid'];
-    let volumeRequest = await fetchItemData(baseUrl, volumeUUID, k7);
-    let apiDataVolume = volumeRequest[0].response.docs[0];
-    let modsVolume = volumeRequest[1];
+  if (model === 'periodicalitem' ||
+    (model === 'page' && apiData['own_parent.model'] === 'periodicalitem')) {
 
-    // Vygenerování částí citace
-    title = await parsePeriodicalTitle(modsData, apiData, lang);
-    publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume);
-    if (apiDataTitle['id_issn'] !== undefined) {
-      issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
+    let issueData;
+    
+    if (model === 'page'){
+      let pageNumber = apiData['page.number'] || '';
+      data = await fetchItemData(KRAMERIUS_API_URLS.default, apiData['own_parent.pid'], true);
+      issueData = await getPeriodicalIssueData(data, lang, dlUrl, pageNumber);
+    } else {
+      issueData = await getPeriodicalIssueData(data, lang, dlUrl);
     }
-    availibility = dlUrl + apiData['pid'] || '';
+    if (!issueData) {
+      throw new Error('Data not found');
+    }
+    title = issueData.title;
+    publication = issueData.publication;
+    issn = issueData.issn;
+    availibility = issueData.availibility;
   }
 
   // Periodical ARTICLE
   if (model === 'article') {
-    const baseUrl = KRAMERIUS_API_URLS.default;
-    const k7 = true;
-    
-    // Získání dat o nadřazeném titulu
-    let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
-    let apiDataTitle = titleRequest[0].response.docs[0];
-    let modsTitle = titleRequest[1];
-    // Získání dat o nadřazeném issue
-    let issueUUID = apiData['own_parent.pid'];
-    let issueRequest = await fetchItemData(baseUrl, issueUUID, k7);
-    let apiDataIssue = issueRequest[0].response.docs[0];
-    let modsIssue = issueRequest[1];
-    // Získání dat o nadřazeném volume
-    let volumeUUID = apiDataIssue['own_parent.pid'];
-    let volumeRequest = await fetchItemData(baseUrl, volumeUUID, k7);
-    let apiDataVolume = volumeRequest[0].response.docs[0];
-    let modsVolume = volumeRequest[1];
-
-    // Vygenerování částí citace
-    authors = await parseModsAuthors(modsData, lang);
-    title = await parsePeriodicalTitle(modsData, apiData, lang);
-    publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, apiDataIssue, modsIssue);
-    if (apiDataTitle['id_issn'] !== undefined) {
-      issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
-    }
-    availibility = dlUrl + apiData['pid'] || '';
+    let articleData = await getPeriodicalArticleData(data, lang, dlUrl);
+    authors = articleData.authors;
+    title = articleData.title;
+    publication = articleData.publication;
+    issn = articleData.issn;
+    availibility = articleData.availibility;
   }
 
   // Sestaveni citace
   if (model === 'monograph' || model === 'convolute' || model === 'monographunit') {
     citation.bibtex = `@book{${apiData['pid']}, `;
+  } else if (model === 'article') {
+    citation.bibtex = `@article{${apiData['pid']}, `;
   } else {
     citation.bibtex = `@misc{${apiData['pid']}, `;
   }
@@ -195,8 +194,8 @@ async function generateCitation(data: any, lang: string, dlUrl: string): Promise
     citation.bibtex += `author = {${authors.bibtex}}, `;
   }
   if (title && title.length === 1) {
-    citation.txt += `${title[0]} `;
-    citation.html += `<i>${title[0]}</i> `;
+    citation.txt += `${title[0]}. `;
+    citation.html += `<i>${title[0]}.</i> `;
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
   }
   if (title && title.length === 2) {
@@ -243,10 +242,20 @@ async function generateCitation(data: any, lang: string, dlUrl: string): Promise
     citation.html += `${issn} `;
     citation.bibtex += `isbn = {${removeTrailingDot(issn)}}, `;
   }
-  if (availibility) {
+  if (availibility && ref === 'true') {
     citation.txt += locale['available'] + `${availibility}`;
     citation.html += locale['available'] + `<a href='${availibility}' target='_blank'>${availibility}</a>`;
     citation.bibtex += `url = {${availibility}}`;
+  } else {
+    if (citation.txt) {
+      citation.txt = citation.txt.trim();
+    }
+    if (citation.html) {
+      citation.html = citation.html.trim();
+    }
+    if (citation.bibtex) {
+      citation.bibtex = removeTrailingComma(citation.bibtex.trim());
+    }
   }
 
   citation.bibtex += `}`;
@@ -254,6 +263,120 @@ async function generateCitation(data: any, lang: string, dlUrl: string): Promise
 
   return [citation, apiData, modsData];
 }
+
+// Získání dat o monografickém dokumentu
+async function getMonographicData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+  const apiData = data[0].response.docs[0];
+  const modsData = data[1];
+  let authors = await parseModsAuthors(modsData, lang);
+  let title = await parseModsTitles(modsData, lang);
+  let publication = await parseModsPublisher(modsData, lang, pageNumber);
+  let scale = await parseModsCartographics(modsData, lang);
+  let physicalDesc = await parsePhysicalDescription(modsData, lang);
+  let isbn = '';
+  if (apiData['id_isbn'] !== undefined) {
+    isbn = 'ISBN ' + apiData['id_isbn'][0] + '.' || '';
+  }
+  let issn = '';
+  if (apiData['id_issn'] !== undefined) {
+    issn = 'ISSN ' + apiData['id_issn'][0] + '.' || '';
+  }
+  let availibility = dlUrl + apiData['pid'] || '';
+
+  return { 'authors': authors, 'title': title, 'publication': publication, 'scale': scale, 'physicalDesc': physicalDesc, 'issn': issn, 'isbn': isbn, 'availibility': availibility };
+}
+
+async function getPeriodicalVolumeData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+  const apiData = data[0].response.docs[0];
+  const modsData = data[1];
+
+  const baseUrl = KRAMERIUS_API_URLS.default;
+  const k7 = true;
+  
+  // Získání dat o nadřazeném titulu
+  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let apiDataTitle = titleRequest[0].response.docs[0];
+  let modsTitle = titleRequest[1];
+
+  // Vygenerování částí citace   
+  let authors = await parseModsAuthors(modsData, lang); 
+  let title = await parsePeriodicalTitle(modsData, apiData, lang);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, null, pageNumber);
+  let issn = '';
+  if (apiDataTitle['id_issn'] !== undefined) {
+    issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
+  }
+  let availibility = dlUrl + apiData['pid'] || '';
+
+  return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
+}
+
+async function getPeriodicalIssueData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+  const apiData = data[0].response.docs[0];
+  const modsData = data[1];
+
+  const baseUrl = KRAMERIUS_API_URLS.default;
+  const k7 = true;
+  
+  // Získání dat o nadřazeném titulu
+  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let apiDataTitle = titleRequest[0].response.docs[0];
+  let modsTitle = titleRequest[1];
+  // Získání dat o nadřazeném volume
+  let volumeUUID = apiData['own_parent.pid'];
+  let volumeRequest = await fetchItemData(baseUrl, volumeUUID, k7);
+  let apiDataVolume = volumeRequest[0].response.docs[0];
+  let modsVolume = volumeRequest[1];
+
+  // Vygenerování částí citace
+  let authors = await parseModsAuthors(modsData, lang);
+  let title = await parsePeriodicalTitle(modsData, apiData, lang);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, null, null, pageNumber);
+  let issn = '';
+  if (apiDataTitle['id_issn'] !== undefined) {
+    issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
+  }
+  let availibility = dlUrl + apiData['pid'] || '';
+
+  return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
+}
+
+async function getPeriodicalArticleData(data: any, lang: string, dlUrl: string) {
+  const apiData = data[0].response.docs[0];
+  const modsData = data[1];
+
+  const baseUrl = KRAMERIUS_API_URLS.default;
+  const k7 = true;
+  
+  // Získání dat o nadřazeném titulu
+  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let apiDataTitle = titleRequest[0].response.docs[0];
+  let modsTitle = titleRequest[1];
+  // Získání dat o nadřazeném issue
+  let issueUUID = apiData['own_parent.pid'];
+  let issueRequest = await fetchItemData(baseUrl, issueUUID, k7);
+  let apiDataIssue = issueRequest[0].response.docs[0];
+  let modsIssue = issueRequest[1];
+  // Získání dat o nadřazeném volume
+  let volumeUUID = apiDataIssue['own_parent.pid'];
+  let volumeRequest = await fetchItemData(baseUrl, volumeUUID, k7);
+  let apiDataVolume = volumeRequest[0].response.docs[0];
+  let modsVolume = volumeRequest[1];
+
+  // Vygenerování částí citace
+  let authors = await parseModsAuthors(modsData, lang);
+  let title = await parsePeriodicalTitle(modsData, apiData, lang);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, apiDataIssue, modsIssue);
+  let issn = '';
+  if (apiDataTitle['id_issn'] !== undefined) {
+    issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
+  }
+  let availibility = dlUrl + apiData['pid'] || '';
+
+  return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
+}
+
+// Pomocné funkce
 
 function removeTrailingDot(input: string): string {
   // Check if the string ends with a dot
@@ -268,6 +391,13 @@ function removeDoubleDot(input: string): string {
     return input.slice(0, -1); // Remove the last character
   }
   return input; // Return the original string if no trailing dot
+}
+function removeTrailingComma(input: string): string {
+  // Check if the string ends with a comma
+  if (input.endsWith(',')) {
+    return input.slice(0, -1); // Remove the last character
+  }
+  return input; // Return the original string if no trailing comma
 }
 
 
