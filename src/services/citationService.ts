@@ -61,9 +61,28 @@ export async function getCitation(req: Request, res: Response) {
       if (debug === 'true') {
         return res.status(200).json({ citation, apiSource, modsSource });
       } else {
-        return res.status(200).json(citation[String(format)]);
+        const formattedCitation = citation[String(format)];
+    
+        if (!formattedCitation) {
+          return res.status(400).json({ error: 'Unsupported format requested.' });
+        }
+    
+        switch (String(format).toLowerCase()) {
+          case 'txt':
+          case 'bibtex':
+            res.set('Content-Type', 'text/plain');
+            break;
+          case 'html':
+            res.set('Content-Type', 'text/html');
+            break;
+          default:
+            return res.status(400).json({ error: 'Invalid format specified.' });
+        }
+    
+        return res.status(200).send(formattedCitation);
       }
     }
+    
     // return res.status(200).json({ citation, source });
   } catch (error) {
     console.log('Error', error);

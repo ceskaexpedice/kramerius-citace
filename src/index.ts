@@ -1,9 +1,15 @@
 import express from 'express';
+const cors = require('cors');
 import { getCitation } from './services/citationService';
 import { testEndpoint } from './test/testService';
 
 const app = express();
 const port = 3000;
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET']
+}));
 
 app.get('/citation', getCitation);
 app.get('/test', testEndpoint);
