@@ -1,6 +1,7 @@
 import e from 'express';
 import { getLocale } from '../locales';
 import { parse } from 'path';
+import { title } from 'process';
 
 // Funkce pro zpracování MODS autorů
 export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
@@ -122,10 +123,20 @@ export async function parsePeriodicalTitle(mods: any, apiData: any, lang: any): 
     let titleName = apiData['root.title'] || '';
     let issueDate = '';
     let articleName = '';
+    let partName = '';
 
     if (apiData['model'] === 'periodicalitem') {
         issueDate = apiData['date.str'] || '';
         return [titleName, issueDate];
+    }
+    if (apiData['model'] === 'supplement') {
+        titleName += `. ${apiData['title.search'].trim()}`;
+        // issueDate = apiData['date.str'] || '';
+        return [titleName];
+    }
+    if (apiData['model'] === 'internalpart') {
+        partName = apiData['title.search'].trim() || '';
+        return [titleName, issueDate, partName, 'In:'];
     }
     if (apiData['model'] === 'article') {
         issueDate = apiData['date.str'] || '';
@@ -156,8 +167,12 @@ export async function parsePeriodicalPublisher(modsData: any,
     let issueDate = '';
     let articlePageStart = '';
     let articlePageEnd = '';
+    let dateIssuedString = '';
+    let dateIssuedStringStart = '';
+    let dateIssuedStringEnd = '';
 
     if (publicationData) {
+        console.log('publicationData', JSON.stringify(publicationData, null, 2));
         // Získání místa vydání (první místo, kde není authority "marccountry")
         const places = publicationData["mods:place"];
         if (places) {
@@ -178,6 +193,22 @@ export async function parsePeriodicalPublisher(modsData: any,
                 publisher = publisher + ']';
             }
         }
+        let dateIssued = publicationData["mods:dateIssued"] || '';
+        if (dateIssued.length === 1) {
+            dateIssuedString = dateIssued[0]?._; // Odstraníme mezery na začátku a konci
+        } else if (dateIssued.length > 1) {
+            dateIssued.forEach((date: any) => {
+                if (date && date?.$?.encoding === 'marc') {
+                    if (date?.$?.point === 'start') {
+                        dateIssuedStringStart = date._.trim() || '';
+                    } else if (date?.$?.point === 'end') {
+                        dateIssuedStringEnd = date._.trim() || '';
+                    } else {
+                        dateIssuedString = date._.trim() || '';
+                    }
+                }
+            });
+        }
     }
     // Získání dat o volume
     if (apiData['model'] === 'periodicalvolume') {
@@ -186,6 +217,12 @@ export async function parsePeriodicalPublisher(modsData: any,
     }
     // Získání dat o volume a issue
     if (apiData['model'] === 'periodicalitem') {
+        volume = apiDataVolume['part.number.str'] || '';
+        volumeDate = apiDataVolume['date.str'] || '';
+        issue = apiData['part.number.str'] || '';
+        issueDate = apiData['date.str'] || '';
+    }
+    if (apiData['model'] === 'supplement') {
         volume = apiDataVolume['part.number.str'] || '';
         volumeDate = apiDataVolume['date.str'] || '';
         issue = apiData['part.number.str'] || '';
@@ -229,13 +266,28 @@ export async function parsePeriodicalPublisher(modsData: any,
         txt += `, ${locale['volume']} ${volume}`;
         bibtex += `volume = {${volume}}, `;
     }
+    if (apiData['model'] === 'internalpart') {
+        console.log('internalpart 270', dateIssuedString);
+        if (dateIssuedString && dateIssuedString.length > 0) {
+            txt += `, ${dateIssuedString}`;
+            bibtex += `year = {${dateIssuedString}}, `;
+        } else if (dateIssuedStringStart || dateIssuedStringEnd) {
+            txt += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+            bibtex += `year = {${dateIssuedStringStart}-${dateIssuedStringEnd}}, `;
+        }
+    } 
     if (volumeDate && volumeDate.length > 0 && volumeDate !== volume) {
         txt += ` (${volumeDate})`;
         bibtex += `date = {${volumeDate}}, `;
     }
     if (issue && issue.length > 0) {
-        txt += `, ${locale['issue']} ${issue}`;
-        bibtex += `issue = {${issue}}`;
+        if (apiData['model'] === 'supplement') {
+            txt += `, ${locale['supplement']} ${issue}`;
+            bibtex += `issue = {${issue}}, `;
+        } else {
+            txt += `, ${locale['issue']} ${issue}`;
+            bibtex += `issue = {${issue}}, `;
+        }
     }
     if (articlePageStart && articlePageStart.length > 0) {
         txt += `, ${locale['page']} ${articlePageStart}`;

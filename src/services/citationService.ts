@@ -142,6 +142,20 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     availibility = monographicData.availibility;
   }
 
+  // INTERNI CASTI MONOGRAFIE
+  if (model === 'internalpart') {
+    let internalPartData = await getInternalPartData(data, lang, dlUrl);
+    
+    if (!internalPartData) {
+      throw new Error('Data not found');
+    }
+
+    title = internalPartData.title;
+    publication = internalPartData.publication;
+    isbn = internalPartData.isbn;
+    availibility = internalPartData.availibility;
+  }
+
   // CASTI PERIODIKA
   // Periodical VOLUME
   if (model === 'periodicalvolume' ||
@@ -167,7 +181,8 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
 
   // Periodical ISSUE
   if (model === 'periodicalitem' ||
-    (model === 'page' && apiData['own_parent.model'] === 'periodicalitem')) {
+      model === 'supplement' ||
+     (model === 'page' && (apiData['own_parent.model'] === 'periodicalitem' || apiData['own_parent.model'] === 'supplement'))) {
 
     let issueData;
     
@@ -202,6 +217,8 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     citation.bibtex = `@book{${apiData['pid']}, `;
   } else if (model === 'article') {
     citation.bibtex = `@article{${apiData['pid']}, `;
+  } else if (model === 'internalpart') {
+    citation.bibtex = `@inbook{${apiData['pid']}, `;
   } else {
     citation.bibtex = `@misc{${apiData['pid']}, `;
   }
@@ -217,6 +234,7 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     citation.html += `<i>${title[0]}.</i> `;
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
   }
+  //periodical issue
   if (title && title.length === 2) {
     citation.txt += `${title[0]}. ${title[1]}. `;
     citation.html += `<i>${title[0]}.</i> `;
@@ -225,6 +243,7 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     }
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
   }
+  // article
   if (title && title.length === 3) {
     if (title[2] && title[2].length > 0) {
       citation.txt += `${title[2]}. `;
@@ -234,9 +253,27 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     citation.txt += `${title[0]}. ${title[1]}. `;
     citation.html += `<i>${title[0]}.</i> `;
     if (title[1] && title[1].length > 0) {
+      citation.txt += `${title[1]}. `;
       citation.html += `${title[1]}. `;
     }
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
+  }
+  // internalpart
+  if (title && title.length === 4) {
+    if (title[2] && title[2].length > 0) {
+      citation.txt += `${title[2]}. `;
+      citation.html += `${title[2]}. `;
+      citation.bibtex += `title = {${removeTrailingDot(title[2])}}, `;
+    }
+    if (title[3] && title[3].length > 0) {
+      citation.txt += `${title[3]} `;
+      citation.html += `${title[3]} `;
+    }
+    if (title[0] && title[0].length > 0) {
+      citation.txt += `${title[0]}. `;
+      citation.html += `<i>${title[0]}.</i> `;
+      citation.bibtex += `booktitle = {${removeTrailingDot(title[0])}}, `;
+    }
   }
   if (model === 'map' && scale) {
     citation.txt += `${scale} `;
@@ -393,6 +430,31 @@ async function getPeriodicalArticleData(data: any, lang: string, dlUrl: string) 
   let availibility = dlUrl + apiData['pid'] || '';
 
   return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
+}
+
+async function getInternalPartData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+  const apiData = data[0].response.docs[0];
+  const modsData = data[1];
+
+  const baseUrl = KRAMERIUS_API_URLS.default;
+  const k7 = true;
+
+  // Získání dat o nadřazeném titulu
+  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let apiDataTitle = titleRequest[0].response.docs[0];
+  let modsTitle = titleRequest[1];
+
+  // Vygenerování částí citace
+  let authors = await parseModsAuthors(modsData, lang);
+  let title = await parsePeriodicalTitle(modsData, apiData, lang);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, pageNumber);
+  let isbn = '';
+  if (apiDataTitle['id_isbn'] !== undefined) {
+    isbn = 'ISBN ' + apiDataTitle['id_isbn'][0] + '.' || '';
+  }
+  let availibility = dlUrl + apiData['pid'] || '';
+  
+  return { 'authors': authors, 'title': title, 'publication': publication, 'isbn': isbn, 'availibility': availibility };
 }
 
 // Pomocné funkce

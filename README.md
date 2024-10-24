@@ -14,7 +14,7 @@ GitHub: [https://github.com/trineracz/citation-api](https://github.com/trineracz
 
 ### `/citation`
 
-Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&form=html&lang=cs&`
+Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs&`
 
 #### Parametry:
 
