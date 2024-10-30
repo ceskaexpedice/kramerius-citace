@@ -3,7 +3,7 @@
   "info": {
     "title": "Citation Service API",
     "description": "API for the Citation service",
-    "version": "2.0"
+    "version": "SHOULD_BE_INJECTED"
   },
   "tags": [
     {

@@ -52,10 +52,18 @@ npm run start
 ```
 docker build -t citation-api .
 ```
+případně včetně tagu verze  
+```
+docker build -t martinrehanek/citation-api:1.1.0 .
+```
+případně včetně tagu verze a tagu `latest`
+```
+docker build -t martinrehanek/citation-api:latest -t martinrehanek/citation-api:1.1.0 .
+```
 
 ##### Hostování 
 ```
-docker tag citation-api martinrehanek/citation-api:latest
+docker push martinrehanek/citation-api:1.1.0
 docker push martinrehanek/citation-api:latest
 ```
 
@@ -64,6 +72,10 @@ docker push martinrehanek/citation-api:latest
 ##### Lokální image
 ```
 docker run -p 3000:3000 citation-api
+```
+případně konkrétní verzi
+```
+docker run -p 3000:3000 martinrehanek/citation-api:latest
 ```
 
 ##### Docker Hub

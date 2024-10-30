@@ -17,10 +17,12 @@ const config = {
   //TODO: use actual config, possibly from environment variables
 
   //dev
+  version : '1.1.0',
   production_build: false,
   documentation_api_base_url: 'http://localhost:3000/'
 
   //prod
+  //version : '1.1.0',
   //production_build: true,
   //documentation_api_base_url: 'https://citace.osdd.mzk.cz/'
 }
@@ -35,6 +37,7 @@ function initSwagger() { // API documentation
       description: config.production_build ? 'Production server' : 'Development server'
     }
   ];
+  swaggerDocument.info.version = config.version;
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }
 
@@ -85,7 +88,7 @@ app.get('/', (req, res) => {
 
       <main>
         <h2>Citation API Documentation</h2>
-        <p>Version 1.1</p>
+        <p>Version ${config.version}</p>
         <p>See the <a href="https://github.com/trineracz/citation-api">GitHub repository</a> or <a href="${baseUrl}/api-docs">API documentation</a>.
         <p>Or try the <code>/citation</code> endpoint, for example:</p>
         <p><a href="${baseUrl}/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&form=html&lang=cs">
