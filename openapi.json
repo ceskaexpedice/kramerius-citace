@@ -40,6 +40,122 @@
           }
         }
       }
+    },
+    "/citation": {
+      "get": {
+        "summary": "Get citation based on uuid",
+        "tags": [
+          "Citations"
+        ],
+        "description": "Returns Citation based on uuid",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "required": true,
+            "description": "The uuid of the book, article, etc. to be cited",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "uuid:869e4730-6c8b-11e2-8ed6-005056827e52"
+            }
+          },
+          {
+            "name": "form",
+            "in": "query",
+            "required": false,
+            "description": "citation format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "html",
+                "txt",
+                "bibtex"
+              ]
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "description": "citation language",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cs",
+                "en"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Citation in the requested format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "example": "ČAPEK, Karel and ČAPEK, Josef. <i>Devatero pohádek, dvě navíc.</i> 1. vyd. Praha: SNDK, 1959."
+                    },
+                    "txt": {
+                      "type": "string",
+                      "example": "ČAPEK, Karel and ČAPEK, Josef. Devatero pohádek, dvě navíc. 1. vyd. Praha: SNDK, 1959."
+                    },
+                    "bibtex": {
+                      "type": "string",
+                      "example": "@book{uuid:869e4730-6c8b-11e2-8ed6-005056827e52, author = {ČAPEK, Karel and ČAPEK, Josef}, title = {Devatero pohádek, dvě navíc}, edition = {1. vyd.}, address = {Praha}, publisher = {SNDK}, year = {1959}}"
+                    }
+                  }
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "format": "html",
+                  "example": "ČAPEK, Karel and ČAPEK, Josef. <i>Devatero pohádek, dvě navíc.</i> 1. vyd. Praha: SNDK, 1959."
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "ČAPEK, Karel and ČAPEK, Josef. Devatero pohádek, dvě navíc. 1. vyd. Praha: SNDK, 1959."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/test": {
+      "get": {
+        "summary": "Show some sample conversions",
+        "tags": [
+          "Dev"
+        ],
+        "description": "Returns text with some sample conversions",
+        "responses": {
+          "200": {
+            "description": "Sample conversions",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
     }
   },
   "components": {

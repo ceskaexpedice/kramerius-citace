@@ -1,0 +1,14 @@
+get:
+  summary: Show some sample conversions
+  tags:
+    - Dev
+  description: Returns text with some sample conversions
+  responses:
+    '200':
+      description: Sample conversions
+      content:
+        text/plain:
+          schema: 
+            type: string            
+    '500':
+      description: Internal server error

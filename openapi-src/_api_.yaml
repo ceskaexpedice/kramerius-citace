@@ -1,15 +1,15 @@
 get:
-      summary: Information about the Citation service
-      tags:
-        - Dev
-      description: Returns Web page describing Citation service
-      responses:
-        '200':
-          description: A HTML page with information about the Citation service
-          content:
-            text/html:
-              schema: 
-                type: string
-                format: html            
-        '500':
-          description: Internal server error 
+  summary: Information about the Citation service
+  tags:
+    - Dev
+  description: Returns Web page describing Citation service
+  responses:
+    '200':
+      description: A HTML page with information about the Citation service
+      content:
+        text/html:
+          schema: 
+            type: string
+            format: html            
+    '500':
+      description: Internal server error
