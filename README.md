@@ -77,3 +77,16 @@ Vnější (host) port lze změnit takto:
 ```
 docker run -p 1234:3000 martinrehanek/citation-api
 ```
+
+## API
+dokumentace na `/api-docs`
+
+http://localhost:3000/api-docs/
+
+### build OpenAPI dokumentace
+Po jakékoliv úpravě dokumentace v adesáři openapi-src je potřeba aktualizovat výsledný soubor openapi.json
+
+`swagger-cli bundle openapi-src/__api.yaml -o openapi.json`
+
+### validace openapi.json
+`swagger-cli validate openapi.json`

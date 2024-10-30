@@ -1,0 +1,40 @@
+openapi: 3.0.0
+info:
+  title: Citation Service API
+  description: API for the Citation service
+  version: "2.0"
+
+tags:
+  #- name: "Auth"
+  #  description: "User authentication"
+  #- name: "Users"
+  #  description: "User management"
+  - name: "Dev"
+    description: "Service information, configuration, etc."
+  - name: "Citations"
+    description: "Citation generation, search, and management"  
+  
+paths:
+  # Include paths from different files  
+  /:
+    $ref: './_api_.yaml'
+  
+  #auth
+  #/auth/login/google:
+  #  $ref: './_api_auth_login_google.yaml'
+  #/auth/login/google/callback:
+  #  $ref: './_api_auth_login_google_callback.yaml'
+  
+  
+components:
+  #securitySchemes:
+  #  bearerAuth:
+  #    type: http
+  #    scheme: bearer
+  #    bearerFormat: JWT
+
+  # Reference schemas and other components from schemas.yaml
+  $ref: './schemas.yaml#/components'
+  
+#security:
+#  - bearerAuth: []

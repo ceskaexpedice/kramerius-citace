@@ -1,0 +1,9 @@
+components:
+  schemas:
+    ApiInfo: 
+      type: object
+      properties:
+        api_version:
+          type: string
+          example: "1.1"
+        

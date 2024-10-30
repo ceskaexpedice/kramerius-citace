@@ -1,0 +1,58 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Citation Service API",
+    "description": "API for the Citation service",
+    "version": "2.0"
+  },
+  "tags": [
+    {
+      "name": "Dev",
+      "description": "Service information, configuration, etc."
+    },
+    {
+      "name": "Citations",
+      "description": "Citation generation, search, and management"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Information about the Citation service",
+        "tags": [
+          "Dev"
+        ],
+        "description": "Returns Web page describing Citation service",
+        "responses": {
+          "200": {
+            "description": "A HTML page with information about the Citation service",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "format": "html"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiInfo": {
+        "type": "object",
+        "properties": {
+          "api_version": {
+            "type": "string",
+            "example": "1.1"
+          }
+        }
+      }
+    }
+  }
+}
