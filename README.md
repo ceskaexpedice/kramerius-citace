@@ -6,6 +6,8 @@ Zdroj normy ISO690:2022: [Výklad ISO690:2022 PDF](https://www.citace.com/Vyklad
 
 Příklady: [Příklady ISO690:2022](https://citace.zcu.cz/home.html)
 
+Bibtex: [bibtex.eu](https://bibtex.eu/)
+
 ## Projekt
 
 GitHub: [https://github.com/trineracz/citation-api](https://github.com/trineracz/citation-api)
@@ -19,10 +21,10 @@ Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-0050568
 #### Parametry:
 
 - **uuid**: UUID objektu. Povinny parametr.
-- **format**: `html | txt | bibtex | undefined` (vrací JSON se vším včetně zdroje).
-- **lang**: `cs | en`
-- **ref**: `true | false | undefined` citace s / bez odkazu na digitální dokument (undefined = false)
-- **debug**: `true | false | undefined` citace s api a MODS dokumentu pro kontrolu (undefined = false)
+- **format**: `html | txt | bibtex` (default vrací JSON se všemi formaty).
+- **lang**: `cs | en` (default = cs)
+- **ref**: `true | false` citace s / bez odkazu na digitální dokument (default = false)
+- **debug**: `true | false` citace s api a MODS dokumentu pro kontrolu (default = false)
 
 
 ## Provoz

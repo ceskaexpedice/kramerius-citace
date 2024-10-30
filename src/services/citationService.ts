@@ -212,6 +212,12 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     availibility = articleData.availibility;
   }
 
+  // COLLECTION
+  if (model === 'collection') {
+    title = [apiData['title.search']];
+    availibility = dlUrl + apiData['pid'] || '';
+  }
+
   // Sestaveni citace
   if (model === 'monograph' || model === 'convolute' || model === 'monographunit') {
     citation.bibtex = `@book{${apiData['pid']}, `;
@@ -224,14 +230,13 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
   }
 
   if (authors && authors.txt?.length > 0 && model !== 'periodical') {
-    console.log('Authors', authors);
     citation.txt += `${removeDoubleDot(authors.txt)} `;
     citation.html += `${removeDoubleDot(authors.txt)} `;
     citation.bibtex += `author = {${authors.bibtex}}, `;
   }
   if (title && title.length === 1) {
-    citation.txt += `${title[0]}. `;
-    citation.html += `<i>${title[0]}.</i> `;
+    citation.txt += `${removeTrailingDot(title[0])}. `;
+    citation.html += `<i>${removeTrailingDot(title[0])}.</i> `;
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
   }
   //periodical issue

@@ -90,13 +90,16 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
 
              // FORMAT MONOGRAFIE: Název: podnázev. Část číslo. Název části.
             if (title && String(title).length > 0) {
-                console.log('title', title);
+                // console.log('title', title);
                 titlesList += (`${title}`);
             }
             if (subTitle && String(subTitle).length > 0) {
-                console.log('subTitle', subTitle);
+                // console.log('subTitle', subTitle);
                 titlesList += (`: ${subTitle}`);
             } else if (String(title).length > 0) {
+                if (!String(titlesList).endsWith('.')) {
+                    titlesList += ('.');
+                }
                 // titlesList += ('.');
             }
             if (partNumber && String(partNumber).length > 0) {
@@ -172,7 +175,7 @@ export async function parsePeriodicalPublisher(modsData: any,
     let dateIssuedStringEnd = '';
 
     if (publicationData) {
-        console.log('publicationData', JSON.stringify(publicationData, null, 2));
+        // console.log('publicationData', JSON.stringify(publicationData, null, 2));
         // Získání místa vydání (první místo, kde není authority "marccountry")
         const places = publicationData["mods:place"];
         if (places) {
@@ -236,13 +239,11 @@ export async function parsePeriodicalPublisher(modsData: any,
         issueDate = apiDataIssue['date.str'] || '';
         if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0]) {
             articlePageStart = modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0] || '';
-            console.log('articlePageStart', articlePageStart);
         } else if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0]) {
             articlePageStart = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0] || '';
         }
         if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0]) {
             articlePageEnd = modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0] || '';
-            console.log('articlePageEnd', articlePageEnd);
         } else if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0]) {
             articlePageEnd = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0] || '';
         }
@@ -267,7 +268,6 @@ export async function parsePeriodicalPublisher(modsData: any,
         bibtex += `volume = {${volume}}, `;
     }
     if (apiData['model'] === 'internalpart') {
-        console.log('internalpart 270', dateIssuedString);
         if (dateIssuedString && dateIssuedString.length > 0) {
             txt += `, ${dateIssuedString}`;
             bibtex += `year = {${dateIssuedString}}, `;
@@ -291,10 +291,12 @@ export async function parsePeriodicalPublisher(modsData: any,
     }
     if (articlePageStart && articlePageStart.length > 0) {
         txt += `, ${locale['page']} ${articlePageStart}`;
+        bibtex += `pages = {${articlePageStart}`;
         if (articlePageEnd && articlePageEnd.length > 0 && articlePageEnd !== articlePageStart) {
             txt += `-${articlePageEnd}.`;
+            bibtex += `-${articlePageEnd}},`;
         } else {
-            txt += '.';
+            bibtex += `},`;
         }
     }
     if (pageNumber && pageNumber.length > 0) {
@@ -312,7 +314,6 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
     let locale = getLocale(lang);
     if (mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"] && mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0]) {
         const originInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
-        // console.log('originInfo', JSON.stringify(originInfo, null, 2));
 
         if (!originInfo) return {'txt': '', 'bibtex': ''}; // Pokud nejsou k dispozici žádné nakladatelské údaje, vrátíme prázdný řetězec.
 
@@ -343,7 +344,6 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
 
         // Získání roku vydání
         const dateIssued = originInfo["mods:dateIssued"] || '';
-        console.log('dateIssued', dateIssued);
         let dateIssuedString = '';
         let dateIssuedStringStart = '';
         let dateIssuedStringEnd = '';
@@ -398,22 +398,17 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         }
 
         if (dateIssuedString && dateIssuedString.length > 0) {
-            console.log('dateIssuedString', dateIssuedString);
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
                 txt += `, ${dateIssuedString}`;
-                console.log('txt', txt);
             } else {
                 txt += `${dateIssuedString}`;
             }
             bibtex += `year = {${dateIssuedString}}, `;
         } else if (dateIssuedStringStart || dateIssuedStringEnd) {
-            // console.log('dateIssuedStringStart', dateIssuedStringStart);
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
                 txt += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
-                // console.log('txt', txt);
             } else {
                 txt += `${dateIssuedStringStart}-${dateIssuedStringEnd}`;
-                // console.log('txt', txt);
             }
             bibtex += `year = {${dateIssuedStringStart}-${dateIssuedStringEnd}}, `;
         } else if (dateIssuedStringOther && dateIssuedStringOther.length > 0) {
@@ -428,6 +423,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         if (pageNumber && pageNumber.length > 0) {
             console.log('pageNumber', pageNumber);
             txt += `, ${locale['page']} ${pageNumber}.`;
+            bibtex += `pages = {${pageNumber}}`;
             console.log('txt', txt);
         } else {
             txt += '.';
