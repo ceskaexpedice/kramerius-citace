@@ -17,14 +17,14 @@ const config = {
   //TODO: use actual config, possibly from environment variables
 
   //dev
-  version : '1.1.2',
-  production_build: false,
-  documentation_api_base_url: 'http://localhost:3000/'
+  //version : '1.1.2',
+  //production_build: false,
+  //documentation_api_base_url: 'http://localhost:3000/'
 
   //prod
-  //version : '1.1.0',
-  //production_build: true,
-  //documentation_api_base_url: 'https://citace.osdd.mzk.cz/'
+  version : '1.1.2',
+  production_build: true,
+  documentation_api_base_url: 'https://citace.osdd.mzk.cz/'
 }
 
 function initSwagger() { // API documentation
