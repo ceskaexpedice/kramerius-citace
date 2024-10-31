@@ -29,7 +29,7 @@ async function fetchItemData(baseUrl: string, uuid: string, k7: boolean) {
     const parsedMods = await parseStringPromise(mods_response.data, { explicitArray: true });
     return [response.data, parsedMods];
   } catch (error) {
-    throw new Error('Data not found or error in fetching data'); 
+    throw new Error('Data not found or error in fetching data');
   }
 }
 

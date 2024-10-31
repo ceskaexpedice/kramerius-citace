@@ -56,19 +56,17 @@
             "description": "The uuid of the book, article, etc. to be cited",
             "schema": {
               "type": "string",
-              "format": "uuid",
               "example": "uuid:869e4730-6c8b-11e2-8ed6-005056827e52"
             }
           },
           {
-            "name": "form",
+            "name": "format",
             "in": "query",
             "required": false,
             "description": "citation format",
             "schema": {
               "type": "string",
               "enum": [
-                "json",
                 "html",
                 "txt",
                 "bibtex"
@@ -85,6 +83,32 @@
               "enum": [
                 "cs",
                 "en"
+              ]
+            }
+          },
+          {
+            "name": "ref",
+            "in": "query",
+            "required": false,
+            "description": "reference to source in the citation",
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "debug",
+            "in": "query",
+            "required": false,
+            "description": "debug mode with additional information (kramerius api, mods)",
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                "true",
+                "false"
               ]
             }
           }
