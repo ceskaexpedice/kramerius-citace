@@ -92,11 +92,7 @@
             "required": false,
             "description": "reference to source in the citation",
             "schema": {
-              "type": "boolean",
-              "enum": [
-                "true",
-                "false"
-              ]
+              "type": "boolean"
             }
           },
           {
@@ -105,11 +101,7 @@
             "required": false,
             "description": "debug mode with additional information (kramerius api, mods)",
             "schema": {
-              "type": "boolean",
-              "enum": [
-                "true",
-                "false"
-              ]
+              "type": "boolean"
             }
           }
         ],

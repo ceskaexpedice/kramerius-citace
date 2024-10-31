@@ -17,7 +17,7 @@ const config = {
   //TODO: use actual config, possibly from environment variables
 
   //dev
-  version : '1.1.1',
+  version : '1.1.2',
   production_build: false,
   documentation_api_base_url: 'http://localhost:3000/'
 
