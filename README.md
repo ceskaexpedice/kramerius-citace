@@ -91,14 +91,14 @@ docker run -p 1234:3000 martinrehanek/citation-api
 ```
 
 ## API
-dokumentace na `/api-docs`
+Webová dokumentace je dostupná na nasezené aplikaci, na cestě `/api-docs`.
 
 http://localhost:3000/api-docs/
 
 ### build OpenAPI dokumentace
-Po jakékoliv úpravě dokumentace v adesáři openapi-src je potřeba aktualizovat výsledný soubor openapi.json
-
+Dokumentace se upravuje v souborech v adresáři `openapi-src`. Následně je potřeba z těchto soborů vygenerovat výsledný soubor `openapi.json` takto:
 `swagger-cli bundle openapi-src/__api.yaml -o openapi.json`
 
 ### validace openapi.json
+Po větším množství změn je vhodně validovat soubor `openapi.json`. I nevalidní soubor sice může fungovat, ale jen částečně. Validaci spustíme takto:
 `swagger-cli validate openapi.json`
