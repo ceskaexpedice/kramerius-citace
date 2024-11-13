@@ -4,30 +4,19 @@ import { getLocale } from '../locales';
 import { parseStringPromise } from 'xml2js';
 import { parseModsAuthors, parseModsTitles, parseModsPublisher, parseModsCartographics, parsePhysicalDescription, parsePeriodicalTitle, parsePeriodicalPublisher } from './modsParser';
 
-const KRAMERIUS_API_URLS = {
-  default: 'https://api.kramerius.mzk.cz',
-  nkp: 'https://kramerius5.nkp.cz'
-};
-
-const DL_URLS = {
-  default: 'https://www.digitalniknihovna.cz/mzk/uuid/'
-};
-
 
 // Funkce pro stažení dat přes API
-async function fetchItemData(baseUrl: string, uuid: string, k7: boolean) {
-  const url = k7
-    ? `${baseUrl}/search/api/client/v7.0/search?q=pid:%22${uuid}%22&rows=1`
-    : `${baseUrl}/search/api/v5.0/item/${uuid}`;
-
-  const mods_url = `${baseUrl}/search/api/client/v7.0/items/${uuid}/metadata/mods`;
+async function fetchItemData(url: string, uuid: string) {
+  const api_url = `${url}/search/api/client/v7.0/search?q=pid:%22${uuid}%22&rows=1`;
+  const mods_url = `${url}/search/api/client/v7.0/items/${uuid}/metadata/mods`;
   
-  console.log('Fetching data', url, mods_url);
+  console.log('Fetching data', api_url, mods_url);
+
   try {
-    const response = await axios.get(url);
+    const api_response = await axios.get(api_url);
     const mods_response = await axios.get(mods_url);
     const parsedMods = await parseStringPromise(mods_response.data, { explicitArray: true });
-    return [response.data, parsedMods];
+    return [api_response.data, parsedMods];
   } catch (error) {
     throw new Error('Data not found or error in fetching data');
   }
@@ -35,19 +24,19 @@ async function fetchItemData(baseUrl: string, uuid: string, k7: boolean) {
 
 // Hlavní funkce pro získání metadat a vraceni citace
 export async function getCitation(req: Request, res: Response) {
-  const { uuid, url, lang = 'cs', k7 = 'true', format = '', ref = 'false', debug = 'false' } = req.query;
+  const { uuid, url, lang = 'cs', style = '', format = '', ref = '', debug = 'false' } = req.query;
   // console.log('Request params', req.query);
 
   if (!uuid) {
     return res.status(422).json({ error: 'Missing uuid parameter in format "uuid={uuid}"' });
   }
-
-  const baseUrl = url || KRAMERIUS_API_URLS.default;
-  const dlUrl = DL_URLS.default;
+  if (!url) {
+    return res.status(422).json({ error: 'Missing url parameter in format "url={url}"' });
+  }
 
   try {
-    const data = await fetchItemData(baseUrl as string, uuid as string, k7 === 'true');
-    const responce = await generateCitation(data, lang as string, dlUrl, ref as string);
+    const data = await fetchItemData(url as string, uuid as string);
+    const responce = await generateCitation(data, url as string, lang as string, ref as string);
     const citation = responce[0];
     const apiSource = responce[1];
     const modsSource = responce[2];
@@ -82,8 +71,6 @@ export async function getCitation(req: Request, res: Response) {
         return res.status(200).send(formattedCitation);
       }
     }
-    
-    // return res.status(200).json({ citation, source });
   } catch (error) {
     console.log('Error', error);
     return res.status(500).json({ error: (error as any).message });
@@ -91,10 +78,10 @@ export async function getCitation(req: Request, res: Response) {
 }
 
 // Generování citace
-async function generateCitation(data: any, lang: string, dlUrl: string, ref: string): Promise<any> {
+async function generateCitation(data: any, url: string, lang: string, ref: string): Promise<any> {
   const locale = getLocale(lang);
 
-  let citation: { html?: string, txt?: string, bibtex?: string } = { html: '', txt: '', bibtex: '' };
+  let citation: { html?: string, txt?: string, bibtex?: string, wiki?: string } = { html: '', txt: '', bibtex: '', wiki: '' };
   const apiData = data[0].response?.docs?.[0];
   const modsData = data[1];
   const model = apiData['model'];
@@ -124,10 +111,10 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
 
     if (model === 'page') {
       let pageNumber = apiData['page.number'] || '';
-      data = await fetchItemData(KRAMERIUS_API_URLS.default, apiData['own_parent.pid'], true);
-      monographicData = await getMonographicData(data, lang, dlUrl, pageNumber);
+      data = await fetchItemData(url, apiData['own_parent.pid']);
+      monographicData = await getMonographicData(data, lang, ref, pageNumber);
     } else {
-      monographicData = await getMonographicData(data, lang, dlUrl);
+      monographicData = await getMonographicData(data, url, lang, ref);
     }
     if (!monographicData) {
       throw new Error('Data not found');
@@ -144,7 +131,7 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
 
   // INTERNI CASTI MONOGRAFIE
   if (model === 'internalpart') {
-    let internalPartData = await getInternalPartData(data, lang, dlUrl);
+    let internalPartData = await getInternalPartData(data, url, lang, ref);
     
     if (!internalPartData) {
       throw new Error('Data not found');
@@ -165,10 +152,10 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     
     if (model === 'page') {
       let pageNumber = apiData['page.number'] || '';
-      data = await fetchItemData(KRAMERIUS_API_URLS.default, apiData['own_parent.pid'], true);
-      volumeData = await getPeriodicalVolumeData(data, lang, dlUrl, pageNumber);
+      data = await fetchItemData(url, apiData['own_parent.pid']);
+      volumeData = await getPeriodicalVolumeData(data, url, lang, ref, pageNumber);
     } else {
-      volumeData = await getPeriodicalVolumeData(data, lang, dlUrl);
+      volumeData = await getPeriodicalVolumeData(data, url, lang, ref);
     }
     if (!volumeData) {
       throw new Error('Data not found');
@@ -188,10 +175,10 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
     
     if (model === 'page'){
       let pageNumber = apiData['page.number'] || '';
-      data = await fetchItemData(KRAMERIUS_API_URLS.default, apiData['own_parent.pid'], true);
-      issueData = await getPeriodicalIssueData(data, lang, dlUrl, pageNumber);
+      data = await fetchItemData(url, apiData['own_parent.pid']);
+      issueData = await getPeriodicalIssueData(data, url, lang, ref, pageNumber);
     } else {
-      issueData = await getPeriodicalIssueData(data, lang, dlUrl);
+      issueData = await getPeriodicalIssueData(data, url, lang, ref);
     }
     if (!issueData) {
       throw new Error('Data not found');
@@ -204,7 +191,7 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
 
   // Periodical ARTICLE
   if (model === 'article') {
-    let articleData = await getPeriodicalArticleData(data, lang, dlUrl);
+    let articleData = await getPeriodicalArticleData(data, url, lang, ref);
     authors = articleData.authors;
     title = articleData.title;
     publication = articleData.publication;
@@ -215,7 +202,7 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
   // COLLECTION
   if (model === 'collection') {
     title = [apiData['title.search']];
-    availibility = dlUrl + apiData['pid'] || '';
+    availibility = ref;
   }
 
   // Sestaveni citace
@@ -326,7 +313,7 @@ async function generateCitation(data: any, lang: string, dlUrl: string, ref: str
 }
 
 // Získání dat o monografickém dokumentu
-async function getMonographicData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+async function getMonographicData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
   let authors = await parseModsAuthors(modsData, lang);
@@ -342,20 +329,17 @@ async function getMonographicData(data: any, lang: string, dlUrl: string, pageNu
   if (apiData['id_issn'] !== undefined) {
     issn = 'ISSN ' + apiData['id_issn'][0] + '.' || '';
   }
-  let availibility = dlUrl + apiData['pid'] || '';
+  let availibility = ref;
 
   return { 'authors': authors, 'title': title, 'publication': publication, 'scale': scale, 'physicalDesc': physicalDesc, 'issn': issn, 'isbn': isbn, 'availibility': availibility };
 }
 
-async function getPeriodicalVolumeData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
 
-  const baseUrl = KRAMERIUS_API_URLS.default;
-  const k7 = true;
-  
   // Získání dat o nadřazeném titulu
-  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let titleRequest = await fetchItemData(url, apiData['root.pid']);
   let apiDataTitle = titleRequest[0].response.docs[0];
   let modsTitle = titleRequest[1];
 
@@ -367,25 +351,22 @@ async function getPeriodicalVolumeData(data: any, lang: string, dlUrl: string, p
   if (apiDataTitle['id_issn'] !== undefined) {
     issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
   }
-  let availibility = dlUrl + apiData['pid'] || '';
+  let availibility = ref;
 
   return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
 }
 
-async function getPeriodicalIssueData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+async function getPeriodicalIssueData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
-
-  const baseUrl = KRAMERIUS_API_URLS.default;
-  const k7 = true;
   
   // Získání dat o nadřazeném titulu
-  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let titleRequest = await fetchItemData(url, apiData['root.pid']);
   let apiDataTitle = titleRequest[0].response.docs[0];
   let modsTitle = titleRequest[1];
   // Získání dat o nadřazeném volume
   let volumeUUID = apiData['own_parent.pid'];
-  let volumeRequest = await fetchItemData(baseUrl, volumeUUID, k7);
+  let volumeRequest = await fetchItemData(url, volumeUUID);
   let apiDataVolume = volumeRequest[0].response.docs[0];
   let modsVolume = volumeRequest[1];
 
@@ -397,30 +378,27 @@ async function getPeriodicalIssueData(data: any, lang: string, dlUrl: string, pa
   if (apiDataTitle['id_issn'] !== undefined) {
     issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
   }
-  let availibility = dlUrl + apiData['pid'] || '';
+  let availibility = ref;
 
   return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
 }
 
-async function getPeriodicalArticleData(data: any, lang: string, dlUrl: string) {
+async function getPeriodicalArticleData(data: any, url: string, lang: string, ref: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
 
-  const baseUrl = KRAMERIUS_API_URLS.default;
-  const k7 = true;
-  
   // Získání dat o nadřazeném titulu
-  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let titleRequest = await fetchItemData(url, apiData['root.pid']);
   let apiDataTitle = titleRequest[0].response.docs[0];
   let modsTitle = titleRequest[1];
   // Získání dat o nadřazeném issue
   let issueUUID = apiData['own_parent.pid'];
-  let issueRequest = await fetchItemData(baseUrl, issueUUID, k7);
+  let issueRequest = await fetchItemData(url, issueUUID);
   let apiDataIssue = issueRequest[0].response.docs[0];
   let modsIssue = issueRequest[1];
   // Získání dat o nadřazeném volume
   let volumeUUID = apiDataIssue['own_parent.pid'];
-  let volumeRequest = await fetchItemData(baseUrl, volumeUUID, k7);
+  let volumeRequest = await fetchItemData(url, volumeUUID);
   let apiDataVolume = volumeRequest[0].response.docs[0];
   let modsVolume = volumeRequest[1];
 
@@ -432,20 +410,17 @@ async function getPeriodicalArticleData(data: any, lang: string, dlUrl: string) 
   if (apiDataTitle['id_issn'] !== undefined) {
     issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
   }
-  let availibility = dlUrl + apiData['pid'] || '';
+  let availibility = ref;
 
   return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
 }
 
-async function getInternalPartData(data: any, lang: string, dlUrl: string, pageNumber?: string) {
+async function getInternalPartData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
 
-  const baseUrl = KRAMERIUS_API_URLS.default;
-  const k7 = true;
-
   // Získání dat o nadřazeném titulu
-  let titleRequest = await fetchItemData(baseUrl, apiData['root.pid'], k7);
+  let titleRequest = await fetchItemData(url, apiData['root.pid']);
   let apiDataTitle = titleRequest[0].response.docs[0];
   let modsTitle = titleRequest[1];
 
@@ -457,7 +432,7 @@ async function getInternalPartData(data: any, lang: string, dlUrl: string, pageN
   if (apiDataTitle['id_isbn'] !== undefined) {
     isbn = 'ISBN ' + apiDataTitle['id_isbn'][0] + '.' || '';
   }
-  let availibility = dlUrl + apiData['pid'] || '';
+  let availibility = ref;
   
   return { 'authors': authors, 'title': title, 'publication': publication, 'isbn': isbn, 'availibility': availibility };
 }

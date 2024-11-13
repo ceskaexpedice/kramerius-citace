@@ -91,8 +91,8 @@ app.get('/', (req, res) => {
         <p>Version ${config.version}</p>
         <p>See the <a href="https://github.com/trineracz/citation-api">GitHub repository</a> or <a href="${baseUrl}/api-docs">API documentation</a>.
         <p>Or try the <code>/citation</code> endpoint, for example:</p>
-        <p><a href="${baseUrl}/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&form=html&lang=cs">
-          ${baseUrl}/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&form=html&lang=cs
+        <p><a href="${baseUrl}/citation?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs">
+          ${baseUrl}/citation?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs
         </a></p>
       </main>
 

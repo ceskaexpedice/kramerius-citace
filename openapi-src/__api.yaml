@@ -20,8 +20,8 @@ paths:
     $ref: './_api_.yaml'
   /citation:
     $ref: './_api_citation_.yaml'  
-  /test:
-    $ref: './_api_test.yaml'
+  # /test:
+  #   $ref: './_api_test.yaml'
   
   #auth
   #/auth/login/google:

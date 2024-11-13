@@ -43,12 +43,22 @@
     },
     "/citation": {
       "get": {
-        "summary": "Get citation based on uuid",
+        "summary": "Get citation based on url and uuid",
         "tags": [
           "Citations"
         ],
         "description": "Returns Citation based on uuid",
         "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "description": "The url of the api of requested Kramerius",
+            "schema": {
+              "type": "string",
+              "example": "https://api.kramerius.mzk.cz"
+            }
+          },
           {
             "name": "uuid",
             "in": "query",
@@ -92,7 +102,8 @@
             "required": false,
             "description": "reference to source in the citation",
             "schema": {
-              "type": "boolean"
+              "type": "string",
+              "example": "https://www.digitalniknihovna.cz/mzk/uuid/uuid:309d4d59-4eb8-4eb3-8606-94d3aa5a64bd"
             }
           },
           {
@@ -139,30 +150,6 @@
                 "schema": {
                   "type": "string",
                   "example": "ČAPEK, Karel and ČAPEK, Josef. Devatero pohádek, dvě navíc. 1. vyd. Praha: SNDK, 1959."
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/test": {
-      "get": {
-        "summary": "Show some sample conversions",
-        "tags": [
-          "Dev"
-        ],
-        "description": "Returns text with some sample conversions",
-        "responses": {
-          "200": {
-            "description": "Sample conversions",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
                 }
               }
             }

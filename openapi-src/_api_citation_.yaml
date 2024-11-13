@@ -1,16 +1,23 @@
 get:
-  summary: Get citation based on uuid
+  summary: Get citation based on url and uuid
   tags:
     - Citations
   description: Returns Citation based on uuid
-  parameters:  
+  parameters:            
+        - name: url
+          in: query                
+          required: true           
+          description: The url of the api of requested Kramerius
+          schema:
+            type: string
+            example: "https://api.kramerius.mzk.cz"
         - name: uuid
           in: query                
           required: true           
           description: The uuid of the book, article, etc. to be cited
           schema:
             type: string
-            example: "uuid:869e4730-6c8b-11e2-8ed6-005056827e52"            
+            example: "uuid:869e4730-6c8b-11e2-8ed6-005056827e52"  
         - name: format
           in: query                
           required: false           
@@ -30,7 +37,8 @@ get:
           required: false           
           description: reference to source in the citation
           schema:
-            type: boolean
+            type: string
+            example: "https://www.digitalniknihovna.cz/mzk/uuid/uuid:309d4d59-4eb8-4eb3-8606-94d3aa5a64bd"
         - name: debug
           in: query                
           required: false           
