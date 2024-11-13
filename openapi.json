@@ -77,9 +77,12 @@
             "schema": {
               "type": "string",
               "enum": [
-                "html",
                 "txt",
-                "bibtex"
+                "html",
+                "bibtex",
+                "wiki",
+                "ris",
+                "all"
               ]
             }
           },
@@ -92,7 +95,9 @@
               "type": "string",
               "enum": [
                 "cs",
-                "en"
+                "en",
+                "sk",
+                "de"
               ]
             }
           },
