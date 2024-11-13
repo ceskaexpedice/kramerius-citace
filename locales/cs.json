@@ -6,5 +6,19 @@
     "volume": "roč.",
     "issue": "č.",
     "pages": "s.",
-    "supplement": "příl. č."
+    "supplement": "příl. č.",
+    "wiki": {
+        "monograph": "Citace monografie",
+        "periodical": "Citace periodika",
+        "title": "titul",
+        "author_link": "autor",
+        "surname": "příjmení",
+        "name": "jméno",
+        "edition": "vydání",
+        "place": "místo",
+        "publisher": "vydavatel",
+        "year": "rok vydání",
+        "isbn": "isbn",
+        "issn": "issn"
+    }
 }

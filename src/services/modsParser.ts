@@ -11,7 +11,12 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
   let names = mods["mods:modsCollection"]["mods:mods"][0]["mods:name"];
 //   console.log('names', JSON.stringify(names, null, 2));
 
-  if (!names) return {'txt': '', 'bibtex': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
+  if (!names) return {'txt': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
+
+  let wikiAuthors = '';
+  let risAuthors = '';
+
+  let i = 1;
 
   names.forEach((name: any) => {
     // Ověření, že namePart existuje a je polem
@@ -19,6 +24,10 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
     if (!name.$?.nameTitleGroup) {
         const namePart = name['mods:namePart'];
         if (!namePart || !Array.isArray(namePart)) return;
+        
+        // index
+
+
         let family = '';
         let given = '';
         let fullName = '';
@@ -28,13 +37,13 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
                 // Pokud je part řetězec, bereme ho jako celé jméno
                 fullName = part;
                 family = fullName.split(', ')[0];
-                given = fullName.split(', ')[1];
+                given = fullName.split(', ')[1];      
                 // console.log('1 family, given', family, ', ', given);
             } 
             if (part.$?.type === 'family') {
                 if (part._ && part._.length > 0) {
                     family = part._;
-                }   
+                }
                 // console.log('2 family', family, ', ', given);
             } 
             if (part.$?.type === 'given') {
@@ -48,23 +57,46 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
         if (family && family.length > 0 && given && given.length > 0) {
             // Pokud máme příjmení a jméno
             authorsList.push(`${family.toUpperCase() || ''}, ${given || ''}`.trim());
+            risAuthors += `AU  - ${family}, ${given}\n`;
+            if (i === 1) {
+                wikiAuthors += `${locale['wiki']['surname']} = ${family} | ${locale['wiki']['name']} = ${given} | `;
+            } else {
+                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family} | ${locale['wiki']['name']}${i} = ${given} | `;
+            } 
         } else if (family.length > 0 || given.length > 0) {
             // Pokud máme pouze jedno z nich
             authorsList.push(`${family || given}`.trim());
+            risAuthors += `AU  - ${family || given}\n`;
+            if (i === 1) {
+                wikiAuthors += `${locale['wiki']['surname']} = ${family || given}`;
+            } else {
+                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family || given}`;
+            }
         }
+        i = i + 1;
     }
   });
 
-  if (authorsList.length === 0) return {'txt': '', 'bibtex': ''};
-  if (authorsList.length === 1) return {'txt': `${authorsList[0]}.`, 'bibtex': `${authorsList[0]}`};
-  if (authorsList.length > 4) return {'txt': `${authorsList[0]} et al.`, 'bibtex': `${authorsList[0]} and others`};
+  if (authorsList.length === 0) return {'txt': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
+  if (authorsList.length === 1) return {'txt': `${authorsList[0]}.`, 
+                                        'bibtex': `${authorsList[0]}`, 
+                                        'wiki': wikiAuthors, 
+                                        'ris': risAuthors};
+  if (authorsList.length > 4) return {'txt': `${authorsList[0]} et al.`, 
+                                      'bibtex': `${authorsList[0]} and others`, 
+                                      'wiki': wikiAuthors, 
+                                      'ris': risAuthors};
   return {'txt':`${authorsList.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsList[authorsList.length - 1]}.`,
-          'bibtex':`${authorsList.slice().join(' and ')}`};
+          'bibtex':`${authorsList.slice().join(' and ')}`,
+          'wiki': wikiAuthors,
+          'ris': risAuthors};
 }
 
 export async function parseModsTitles(mods: any, lang: any): Promise<any> {
     let locale = getLocale(lang);
     let titlesList: string = '';
+    let wikiTitle = '';
+    let risTitle = '';
     const titleInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:titleInfo"];
     // console.log('titles', JSON.stringify(titleInfo, null, 2));
 
@@ -92,6 +124,8 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
             if (title && String(title).length > 0) {
                 // console.log('title', title);
                 titlesList += (`${title}`);
+                wikiTitle += `${locale['wiki']['title']} = ${title} | `;
+                risTitle += `TI  - ${title}\n`;
             }
             if (subTitle && String(subTitle).length > 0) {
                 // console.log('subTitle', subTitle);
@@ -119,7 +153,7 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
     // console.log('titlesList', titlesList);
     // Vrátíme všechny tituly spojené dohromady
     
-    return [titlesList];
+    return { 'txt': titlesList, 'wiki': wikiTitle, 'ris': risTitle };
 }
 
 export async function parsePeriodicalTitle(mods: any, apiData: any, lang: any): Promise<any> {
@@ -374,10 +408,14 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         // Vytvoření výsledného řetězce
         let txt = '';
         let bibtex = '';
+        let wiki = '';
+        let ris = '';
 
         if (edition) {
             txt += `${edition[0].trim()}`; // Odstraníme mezery na začátku a konci
             bibtex += `edition = {${edition[0].trim()}}, `; // Odstraníme mezery na začátku a konci
+            wiki += `${locale['wiki']['edition']} = ${edition[0].trim()} | `;
+            ris += `ET  - ${edition[0].trim()}\n`;
             if (!txt.endsWith('.')) {
                 txt += '.'; // Přidáme tečku, pokud řetězec nekončí tečkou
             }
@@ -390,11 +428,15 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
                 txt += `: `;
             }
             bibtex += `address = {${placeOfPublication}}, `;
+            wiki += `${locale['wiki']['place']} = ${placeOfPublication} | `;
+            ris += `PP  - ${placeOfPublication}\n`;
         }
 
         if (publisher && publisher.length > 0) {
             txt += `${publisher}`;
             bibtex += `publisher = {${publisher}}, `;
+            wiki += `${locale['wiki']['publisher']} = ${publisher} | `;
+            ris += `PB  - ${publisher}\n`;
         }
 
         if (dateIssuedString && dateIssuedString.length > 0) {
@@ -404,6 +446,8 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
                 txt += `${dateIssuedString}`;
             }
             bibtex += `year = {${dateIssuedString}}, `;
+            wiki += `${locale['wiki']['year']} = ${dateIssuedString} | `;
+            ris += `PY  - ${dateIssuedString}\n`;
         } else if (dateIssuedStringStart || dateIssuedStringEnd) {
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
                 txt += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
@@ -418,6 +462,8 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
                 txt += `${dateIssuedStringOther}`;
             }
             bibtex += `year = {${dateIssuedStringOther}}, `;
+            wiki += `${locale['wiki']['year']} = ${dateIssuedStringOther} | `;
+            ris += `PY  - ${dateIssuedStringOther}\n`;
         }
 
         if (pageNumber && pageNumber.length > 0) {
@@ -431,9 +477,11 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
 
         // Pokud nemáme žádná data, vrátíme prázdný řetězec, jinak vrátíme výsledek
         return {'txt': txt.trim() ? txt : '', 
-                'bibtex': bibtex };
+                'bibtex': bibtex,
+                'wiki': wiki,
+                'ris': ris};
     } else {
-        return {'txt': '', 'bibtex': ''};
+        return {'txt': '', 'bibtex': '', 'wiki': '', 'ris': ''};
     }
 }
 

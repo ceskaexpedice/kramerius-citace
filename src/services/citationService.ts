@@ -24,7 +24,7 @@ async function fetchItemData(url: string, uuid: string) {
 
 // Hlavní funkce pro získání metadat a vraceni citace
 export async function getCitation(req: Request, res: Response) {
-  const { uuid, url, lang = 'cs', style = '', format = '', ref = '', debug = 'false' } = req.query;
+  const { uuid, url, lang = 'cs', format = 'txt', ref = '', debug = 'false' } = req.query;
   // console.log('Request params', req.query);
 
   if (!uuid) {
@@ -40,7 +40,7 @@ export async function getCitation(req: Request, res: Response) {
     const citation = responce[0];
     const apiSource = responce[1];
     const modsSource = responce[2];
-    if (!format) {
+    if (format === 'all') {
       if (debug === 'true') {
         return res.status(200).json({ citation, apiSource, modsSource });
       } else {
@@ -50,8 +50,13 @@ export async function getCitation(req: Request, res: Response) {
       if (debug === 'true') {
         return res.status(200).json({ citation, apiSource, modsSource });
       } else {
-        const formattedCitation = citation[String(format)];
-    
+        let formattedCitation;
+        if (format === '') {
+          formattedCitation = citation['txt'];
+        } else {
+          formattedCitation = citation[String(format)];
+        }
+
         if (!formattedCitation) {
           return res.status(400).json({ error: 'Unsupported format requested.' });
         }
@@ -59,6 +64,9 @@ export async function getCitation(req: Request, res: Response) {
         switch (String(format).toLowerCase()) {
           case 'txt':
           case 'bibtex':
+          case 'wiki':
+          case 'ris':
+          case '':
             res.set('Content-Type', 'text/plain');
             break;
           case 'html':
@@ -81,13 +89,14 @@ export async function getCitation(req: Request, res: Response) {
 async function generateCitation(data: any, url: string, lang: string, ref: string): Promise<any> {
   const locale = getLocale(lang);
 
-  let citation: { html?: string, txt?: string, bibtex?: string, wiki?: string } = { html: '', txt: '', bibtex: '', wiki: '' };
+  let citation: { html?: string, txt?: string, bibtex?: string, wiki?: string, ris?: string } = { html: '', txt: '', bibtex: '', wiki: '', ris: '' };
   const apiData = data[0].response?.docs?.[0];
   const modsData = data[1];
   const model = apiData['model'];
 
   let authors;
   let title;
+  let titleMono;
   let publication;
   let isbn;
   let issn;
@@ -120,7 +129,8 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       throw new Error('Data not found');
     }
     authors = monographicData.authors;
-    title = monographicData.title;
+    titleMono = monographicData.title;
+    console.log('titleMono', titleMono);
     publication = monographicData.publication;
     scale = monographicData.scale;
     physicalDesc = monographicData.physicalDesc;
@@ -205,28 +215,58 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     availibility = ref;
   }
 
-  // Sestaveni citace
+  // =========   SESTAVENI CITACE ==========
   if (model === 'monograph' || model === 'convolute' || model === 'monographunit') {
     citation.bibtex = `@book{${apiData['pid']}, `;
+    citation.wiki = `{{${locale['wiki']['monograph']} | `;
+    citation.ris = `TY  - BOOK\n`;
+  } else if (model === 'map') {
+    citation.bibtex = `@misc{${apiData['pid']}, `;
+    citation.wiki = `{{${locale['wiki']['monograph']} | `;
+    citation.ris = `TY  - MAP\n`;
   } else if (model === 'article') {
     citation.bibtex = `@article{${apiData['pid']}, `;
+    citation.wiki = `{{${locale['wiki']['periodical']} | `;
+    citation.ris = `TY  - JOUR\n`;
   } else if (model === 'internalpart') {
     citation.bibtex = `@inbook{${apiData['pid']}, `;
+    citation.wiki = `{{${locale['wiki']['monograph']} | `;
+    citation.ris = `TY  - CHAP\n`;
+  } else if (model === 'manuscript') {
+    citation.bibtex = `@misc{${apiData['pid']}, `;
+    citation.wiki = `{{ ${locale['wiki']['monograph']} | `;
+    citation.ris = `TY  - MANSCPT\n`;
   } else {
     citation.bibtex = `@misc{${apiData['pid']}, `;
   }
 
+  // AUTHORS
   if (authors && authors.txt?.length > 0 && model !== 'periodical') {
     citation.txt += `${removeDoubleDot(authors.txt)} `;
     citation.html += `${removeDoubleDot(authors.txt)} `;
     citation.bibtex += `author = {${authors.bibtex}}, `;
+    citation.wiki += `$${authors.wiki}`;
+    citation.ris += `${authors.ris}`;
   }
+
+  // MONOGRAPH TITLE
+  if (titleMono) {
+    citation.txt += `${removeTrailingDot(titleMono.txt)}. `;
+    citation.html += `<i>${removeTrailingDot(titleMono.txt)}.</i> `;
+    citation.bibtex += `title = {${removeTrailingDot(titleMono.txt)}}, `;
+    citation.wiki += `${removeTrailingDot(titleMono.wiki)}`;
+    citation.ris += `${removeTrailingDot(titleMono.ris)}`;
+  }
+
+  // PERIODICAL TITLE
   if (title && title.length === 1) {
     citation.txt += `${removeTrailingDot(title[0])}. `;
     citation.html += `<i>${removeTrailingDot(title[0])}.</i> `;
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
+    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])}|`;
+    citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
   }
-  //periodical issue
+  // periodical issue
   if (title && title.length === 2) {
     citation.txt += `${title[0]}. ${title[1]}. `;
     citation.html += `<i>${title[0]}.</i> `;
@@ -275,6 +315,8 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.txt += `${publication.txt} `;
     citation.html += `${publication.txt} `;
     citation.bibtex += `${publication.bibtex} `;
+    citation.wiki += `${publication.wiki}`;
+    citation.ris += `${publication.ris}`;
   }
   if ((model === 'map' || model === 'graphic') && physicalDesc) {
     citation.txt += `${physicalDesc} `;
@@ -284,13 +326,17 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.txt += `${isbn} `;
     citation.html += `${isbn} `;
     citation.bibtex += `isbn = {${removeTrailingDot(isbn)}}, `;
+    citation.wiki += `${locale['wiki']['isbn']} = ${removeTrailingDot(isbn)}|`;
+    citation.ris += `SN  - ${removeTrailingDot(isbn)}\n`;
   }
   if (issn) {
     citation.txt += `${issn} `;
     citation.html += `${issn} `;
     citation.bibtex += `isbn = {${removeTrailingDot(issn)}}, `;
+    citation.wiki += `${locale['wiki']['issn']} = ${removeTrailingDot(issn)}|`;
+    citation.ris += `SN  - ${removeTrailingDot(issn)}\n`;
   }
-  if (availibility && ref === 'true') {
+  if (availibility && ref.length > 0) {
     citation.txt += locale['available'] + `${availibility}`;
     citation.html += locale['available'] + `<a href='${availibility}' target='_blank'>${availibility}</a>`;
     citation.bibtex += `url = {${availibility}}`;
@@ -304,9 +350,14 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     if (citation.bibtex) {
       citation.bibtex = removeTrailingComma(citation.bibtex.trim());
     }
+    if (citation.wiki) {
+      citation.wiki = removeTrailingComma(citation.wiki.trim());
+    }
   }
 
   citation.bibtex += `}`;
+  citation.wiki += `}}`;
+  citation.ris += `ER  - \n\n`;
   // https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
 
   return [citation, apiData, modsData];
@@ -455,7 +506,7 @@ function removeDoubleDot(input: string): string {
 }
 function removeTrailingComma(input: string): string {
   // Check if the string ends with a comma
-  if (input.endsWith(',')) {
+  if (input.endsWith(',') || input.endsWith('|')) {
     return input.slice(0, -1); // Remove the last character
   }
   return input; // Return the original string if no trailing comma

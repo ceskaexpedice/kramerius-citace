@@ -11,6 +11,7 @@ get:
           schema:
             type: string
             example: "https://api.kramerius.mzk.cz"
+            # enum: ["https://api.kramerius.mzk.cz", "https://api.digitalniknihovna.cz"]
         - name: uuid
           in: query                
           required: true           
@@ -24,14 +25,14 @@ get:
           description: citation format
           schema:
             type: string
-            enum: [html, txt, bibtex]
+            enum: [txt, html, bibtex, wiki, ris, all]
         - name: lang
           in: query                
           required: false           
           description: citation language
           schema:
             type: string
-            enum: [cs, en]
+            enum: [cs, en, sk, de]
         - name: ref
           in: query                
           required: false           

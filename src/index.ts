@@ -22,9 +22,9 @@ const config = {
   //documentation_api_base_url: 'http://localhost:3000/'
 
   //prod
-  version : '1.1.2',
+  version : '1.2',
   production_build: true,
-  documentation_api_base_url: 'https://citace.osdd.mzk.cz/'
+  documentation_api_base_url: 'https://citace.ceskadigitalniknihovna.cz/'
 }
 
 function initSwagger() { // API documentation
