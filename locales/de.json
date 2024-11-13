@@ -1,10 +1,10 @@
 {
-    "available": "Dostupné z: ",
-    "page": "s.",
-    "and": "a",
-    "part": "Díl",
-    "volume": "roč.",
-    "issue": "č.",
-    "pages": "s.",
-    "supplement": "příl. č."
+    "available": "Verfügbar unter: ",
+    "page": "S.",
+    "and": "und",
+    "part": "Teil",
+    "volume": "Bd.",
+    "issue": "Ausg.",
+    "pages": "S.",
+    "supplement": "Zusatz Nr."
 }
