@@ -18,7 +18,13 @@
         "place": "místo",
         "publisher": "vydavatel",
         "year": "rok vydání",
+        "day": "den vydání",
         "isbn": "isbn",
-        "issn": "issn"
+        "issn": "issn",
+        "volume": "ročník",
+        "issue": "číslo",
+        "pages": "strany",
+        "journal": "periodikum",
+        "chapter": "kapitola"
     }
 }

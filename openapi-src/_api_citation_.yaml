@@ -18,14 +18,21 @@ get:
           description: The uuid of the book, article, etc. to be cited
           schema:
             type: string
-            example: "uuid:869e4730-6c8b-11e2-8ed6-005056827e52"  
+            example: "uuid:869e4730-6c8b-11e2-8ed6-005056827e52"
+        - name: exp
+          in: query                
+          required: false           
+          description: citation format
+          schema:
+            type: string
+            enum: [iso690, mla, bibtex, wiki, ris, all]
         - name: format
           in: query                
           required: false           
           description: citation format
           schema:
             type: string
-            enum: [txt, html, bibtex, wiki, ris, all]
+            enum: [txt, html]
         - name: lang
           in: query                
           required: false           
@@ -54,15 +61,27 @@ get:
           schema: 
             type: object
             properties:
-              html:
+              iso690:
                 type: string
-                example: "ČAPEK, Karel and ČAPEK, Josef. <i>Devatero pohádek, dvě navíc.</i> 1. vyd. Praha: SNDK, 1959."
-              txt:
+                example: "ČAPEK, Karel a ČAPEK, Josef. Devatero pohádek, dvě navíc. 1. vyd. Praha: SNDK, 1959."
+              iso690html:
                 type: string
-                example: "ČAPEK, Karel and ČAPEK, Josef. Devatero pohádek, dvě navíc. 1. vyd. Praha: SNDK, 1959."
+                example: "ČAPEK, Karel a ČAPEK, Josef. <i>Devatero pohádek, dvě navíc.</i> 1. vyd. Praha: SNDK, 1959."
+              mla:
+                type: string
+                example: "ČAPEK, Karel a ČAPEK, Josef. Devatero pohádek, dvě navíc. SNDK, 1959."
+              mlahtml:
+                type: string
+                example: "ČAPEK, Karel a ČAPEK, Josef. <i>Devatero pohádek, dvě navíc.</i> SNDK, 1959."
               bibtex:
                 type: string
-                example: "@book{uuid:869e4730-6c8b-11e2-8ed6-005056827e52, author = {ČAPEK, Karel and ČAPEK, Josef}, title = {Devatero pohádek, dvě navíc}, edition = {1. vyd.}, address = {Praha}, publisher = {SNDK}, year = {1959}}"
+                example: "@book{uuid:869e4730-6c8b-11e2-8ed6-005056827e52, author = {Čapek, Karel and Čapek, Josef}, title = {Devatero pohádek, dvě navíc}, edition = {1. vyd.}, address = {Praha}, publisher = {SNDK}, year = {1959}}"
+              wiki:
+                type: string
+                example: "{{ Citace monografie | příjmení = Čapek | jméno = Karel | příjmení2 = Čapek | jméno2 = Josef | titul = Devatero pohádek, dvě navíc | vydání = 1. vyd. | místo = Praha | vydavatel = SNDK | rok vydání = 1959 }}"
+              ris:
+                type: string
+                example: "TY  - BOOK\nAU  - Čapek, Karel\nAU  - Čapek, Josef\nTI  - Devatero pohádek, dvě navíc\nET  - 1. vyd.\nPP  - Praha\nPB  - SNDK\nPY  - 1959\nER  - \n\n"
         text/html:
           schema: 
             type: string

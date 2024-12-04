@@ -22,7 +22,7 @@ const config = {
   //documentation_api_base_url: 'http://localhost:3000/'
 
   //prod
-  version : '1.2.1',
+  version : '1.3',
   production_build: true,
   documentation_api_base_url: 'https://citace.ceskadigitalniknihovna.cz/'
 }
@@ -97,7 +97,7 @@ app.get('/', (req, res) => {
       </main>
 
       <footer>
-        <p>Developed by <a href="https://www.trinera.cz/" target="_blank">Trinera s. r. o.</a> in 2024</p>
+        <p>Developed by <a href="https://www.trinera.cz/" target="_blank">Trinera s.r.o.</a> in 2024</p>
       </footer>
     </body>
     </html>

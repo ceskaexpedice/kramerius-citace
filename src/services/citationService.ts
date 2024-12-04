@@ -24,7 +24,7 @@ async function fetchItemData(url: string, uuid: string) {
 
 // Hlavní funkce pro získání metadat a vraceni citace
 export async function getCitation(req: Request, res: Response) {
-  const { uuid, url, lang = 'cs', format = 'txt', ref = '', debug = 'false' } = req.query;
+  const { uuid, url, lang = 'cs', exp = 'iso690', format = 'txt', ref = '', debug = 'false' } = req.query;
   // console.log('Request params', req.query);
 
   if (!uuid) {
@@ -40,42 +40,41 @@ export async function getCitation(req: Request, res: Response) {
     const citation = responce[0];
     const apiSource = responce[1];
     const modsSource = responce[2];
-    if (format === 'all') {
+    if (exp === 'all') {
       if (debug === 'true') {
         return res.status(200).json({ citation, apiSource, modsSource });
       } else {
         return res.status(200).json(citation);
       }
     } else {
-      if (debug === 'true') {
-        return res.status(200).json({ citation, apiSource, modsSource });
+      let formattedCitation;
+      if (exp === '' && format !== 'html') {
+        formattedCitation = citation['iso690'];
+      } else if ((exp === '' || exp === 'iso690') && format === 'html') {
+        formattedCitation = citation['iso690html'];
+      } else if (exp === 'mla' && format === 'html') {
+        formattedCitation = citation['mlahtml'];
       } else {
-        let formattedCitation;
-        if (format === '') {
-          formattedCitation = citation['txt'];
-        } else {
-          formattedCitation = citation[String(format)];
-        }
-
-        if (!formattedCitation) {
-          return res.status(400).json({ error: 'Unsupported format requested.' });
-        }
+        formattedCitation = citation[String(exp)];
+      }
+      if (!formattedCitation) {
+        return res.status(400).json({ error: 'Unsupported export requested.' });
+      }
     
-        switch (String(format).toLowerCase()) {
-          case 'txt':
-          case 'bibtex':
-          case 'wiki':
-          case 'ris':
-          case '':
-            res.set('Content-Type', 'text/plain');
-            break;
-          case 'html':
-            res.set('Content-Type', 'text/html');
-            break;
-          default:
-            return res.status(400).json({ error: 'Invalid format specified.' });
-        }
-    
+      switch (String(format).toLowerCase()) {
+        case 'txt':
+        case '':
+          res.set('Content-Type', 'text/plain');
+          break;
+        case 'html':
+          res.set('Content-Type', 'text/html');
+          break;
+        default:
+          return res.status(400).json({ error: 'Invalid format specified.' });
+      }
+      if (debug === 'true') {
+        return res.status(200).json({ formattedCitation, apiSource, modsSource });
+      } else {
         return res.status(200).send(formattedCitation);
       }
     }
@@ -89,12 +88,13 @@ export async function getCitation(req: Request, res: Response) {
 async function generateCitation(data: any, url: string, lang: string, ref: string): Promise<any> {
   const locale = getLocale(lang);
 
-  let citation: { html?: string, txt?: string, bibtex?: string, wiki?: string, ris?: string } = { html: '', txt: '', bibtex: '', wiki: '', ris: '' };
+  let citation: { iso690?: string, iso690html?: string, mla?: string, mlahtml?: string, bibtex?: string, wiki?: string, ris?: string } = { iso690: '', iso690html: '', mla: '', mlahtml: '', bibtex: '', wiki: '', ris: '' };
   const apiData = data[0].response?.docs?.[0];
   const modsData = data[1];
   const model = apiData['model'];
 
   let authors;
+  let authorsTitle;
   let title;
   let titleMono;
   let publication;
@@ -114,6 +114,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       model === 'archive' ||
       model === 'manuscript' ||
       model === 'periodical' ||
+      model === 'soundrecording' ||
      (model === 'page' && (apiData['own_parent.model'] === 'monograph' || apiData['own_parent.model'] === 'convolute' || apiData['own_parent.model'] === 'monographunit' || apiData['own_parent.model'] === 'map' || apiData['own_parent.model'] === 'graphic' || apiData['own_parent.model'] === 'sheetmusic' || apiData['own_parent.model'] === 'archive' || apiData['own_parent.model'] === 'manuscript'))) {
     
     let monographicData;
@@ -146,7 +147,8 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     if (!internalPartData) {
       throw new Error('Data not found');
     }
-
+    authors = internalPartData.authorsChapter;
+    authorsTitle = internalPartData.authorsTitle;
     title = internalPartData.title;
     publication = internalPartData.publication;
     isbn = internalPartData.isbn;
@@ -215,44 +217,71 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     availibility = ref;
   }
 
+  // ZVUKOVE NAHRAVKY
+  // soundunit
+  if (model === 'soundunit' || model === 'track') {
+    let soundunitData = await getPeriodicalVolumeData(data, url, lang, ref);
+    authors = soundunitData.authorsTitle;
+    title = soundunitData.title;
+    publication = soundunitData.publication;
+    issn = soundunitData.issn;
+    availibility = soundunitData.availibility;
+
+    console.log('soundunitData', soundunitData.title);
+  }
+
   // =========   SESTAVENI CITACE ==========
-  if (model === 'monograph' || model === 'convolute' || model === 'monographunit') {
+  if (model === 'monograph' || model === 'convolute' || model === 'monographunit' || (model === 'page' && (apiData['own_parent.model'] === 'monograph' || apiData['own_parent.model'] === 'convolute' || apiData['own_parent.model'] === 'monographunit'))) {
     citation.bibtex = `@book{${apiData['pid']}, `;
-    citation.wiki = `{{${locale['wiki']['monograph']} | `;
+    citation.wiki = `{{ ${locale['wiki']['monograph']} | `;
     citation.ris = `TY  - BOOK\n`;
-  } else if (model === 'map') {
+  } else if (model === 'map' || (model === 'page' && apiData['own_parent.model'] === 'map')) {
     citation.bibtex = `@misc{${apiData['pid']}, `;
-    citation.wiki = `{{${locale['wiki']['monograph']} | `;
+    citation.wiki = `{{ ${locale['wiki']['monograph']} | `;
     citation.ris = `TY  - MAP\n`;
-  } else if (model === 'article') {
-    citation.bibtex = `@article{${apiData['pid']}, `;
-    citation.wiki = `{{${locale['wiki']['periodical']} | `;
+  } else if (model === 'periodical' || (model === 'page' && apiData['own_parent.model'] === 'periodical')) {
+    citation.bibtex = `@periodical{${apiData['pid']}, `;
+    citation.wiki = `{{ ${locale['wiki']['periodical']} | `;
+    citation.ris = `TY  - JFULL\n`;
+  } else if (model === 'periodicalvolume' || model === 'periodicalitem' || model === 'supplement' || (model === 'page' && (apiData['own_parent.model'] === 'periodicalvolume' || apiData['own_parent.model'] === 'periodicalitem' || apiData['own_parent.model'] === 'supplement'))) {
+    citation.bibtex = `@periodical{${apiData['pid']}, `;
+    citation.wiki = `{{ ${locale['wiki']['periodical']} | `;
     citation.ris = `TY  - JOUR\n`;
-  } else if (model === 'internalpart') {
+  } else if (model === 'article' || (model === 'page' && apiData['own_parent.model'] === 'article')) {
+    citation.bibtex = `@article{${apiData['pid']}, `;
+    citation.wiki = `{{ ${locale['wiki']['periodical']} | `;
+    citation.ris = `TY  - JOUR\n`;
+  } else if (model === 'internalpart' || (model === 'page' && apiData['own_parent.model'] === 'internalpart')) {
     citation.bibtex = `@inbook{${apiData['pid']}, `;
-    citation.wiki = `{{${locale['wiki']['monograph']} | `;
+    citation.wiki = `{{ ${locale['wiki']['monograph']} | `;
     citation.ris = `TY  - CHAP\n`;
-  } else if (model === 'manuscript') {
+  } else if (model === 'manuscript' || (model === 'page' && apiData['own_parent.model'] === 'manuscript')) {
     citation.bibtex = `@misc{${apiData['pid']}, `;
     citation.wiki = `{{ ${locale['wiki']['monograph']} | `;
     citation.ris = `TY  - MANSCPT\n`;
   } else {
     citation.bibtex = `@misc{${apiData['pid']}, `;
+    citation.wiki = `{{ ${locale['wiki']['monograph']} | `;
+    citation.ris = `TY  - GEN\n`;
   }
 
   // AUTHORS
-  if (authors && authors.txt?.length > 0 && model !== 'periodical') {
-    citation.txt += `${removeDoubleDot(authors.txt)} `;
-    citation.html += `${removeDoubleDot(authors.txt)} `;
+  if (authors && authors.iso?.length > 0 && model !== 'periodical') {
+    citation.iso690 += `${removeDoubleDot(authors.iso)} `;
+    citation.iso690html += `${removeDoubleDot(authors.iso)} `;
+    citation.mla += `${removeDoubleDot(authors.mla)} `;
+    citation.mlahtml += `${removeDoubleDot(authors.mla)} `;
     citation.bibtex += `author = {${authors.bibtex}}, `;
-    citation.wiki += `$${authors.wiki}`;
+    citation.wiki += `${authors.wiki}`;
     citation.ris += `${authors.ris}`;
   }
 
   // MONOGRAPH TITLE
   if (titleMono) {
-    citation.txt += `${removeTrailingDot(titleMono.txt)}. `;
-    citation.html += `<i>${removeTrailingDot(titleMono.txt)}.</i> `;
+    citation.iso690 += `${removeTrailingDot(titleMono.txt)}. `;
+    citation.iso690html += `<i>${removeTrailingDot(titleMono.txt)}.</i> `;
+    citation.mla += `${removeTrailingDot(titleMono.txt)}. `;
+    citation.mlahtml += `<i>${removeTrailingDot(titleMono.txt)}.</i> `;
     citation.bibtex += `title = {${removeTrailingDot(titleMono.txt)}}, `;
     citation.wiki += `${removeTrailingDot(titleMono.wiki)}`;
     citation.ris += `${removeTrailingDot(titleMono.ris)}`;
@@ -260,92 +289,158 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
   // PERIODICAL TITLE
   if (title && title.length === 1) {
-    citation.txt += `${removeTrailingDot(title[0])}. `;
-    citation.html += `<i>${removeTrailingDot(title[0])}.</i> `;
+    citation.iso690 += `${removeTrailingDot(title[0])}. `;
+    citation.iso690html += `<i>${removeTrailingDot(title[0])}.</i> `;
+    citation.mla += `${removeTrailingDot(title[0])}`;
+    citation.mlahtml += `<i>${removeTrailingDot(title[0])}</i>`;
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
-    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])}|`;
+    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
     citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
   }
   // periodical issue
   if (title && title.length === 2) {
-    citation.txt += `${title[0]}. ${title[1]}. `;
-    citation.html += `<i>${title[0]}.</i> `;
+    citation.iso690 += `${title[0]}. ${title[1]}. `;
+    citation.iso690html += `<i>${title[0]}.</i> `;
     if (title[1] && title[1].length > 0) {
-      citation.html += `${title[1]}. `;
+      citation.iso690html += `${title[1]}. `;
+    }
+    citation.mla += `${title[0]}, ${title[1]}`;
+    citation.mlahtml += `<i>${title[0]}</i>`;
+    if (title[1] && title[1].length > 0) {
+      citation.mlahtml += `, ${title[1]}`;
     }
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
+    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
+    citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
+    
   }
   // article
   if (title && title.length === 3) {
+    // nazev clanku
     if (title[2] && title[2].length > 0) {
-      citation.txt += `${title[2]}. `;
-      citation.html += `${title[2]}. `;
+      citation.iso690 += `${title[2]}. `;
+      citation.iso690html += `${title[2]}. `;
+      citation.mla += `${title[2]}. `;
+      citation.mlahtml += `${title[2]}. `;
       citation.bibtex += `title = {${removeTrailingDot(title[2])}}, `;
+      citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[2])} |`;
+      citation.ris += `T1  - ${removeTrailingDot(title[2])}\n`;
     }
-    citation.txt += `${title[0]}. ${title[1]}. `;
-    citation.html += `<i>${title[0]}.</i> `;
+    // nazev periodika
+    if (title[0] && title[0].length > 0) {
+      citation.iso690 += `${title[0]}. `;
+      citation.iso690html += `<i>${title[0]}</i>. `;
+      citation.mla += `${title[0]}, `;
+      citation.mlahtml += `<i>${title[0]}</i>, `;
+      citation.bibtex += `journal = {${removeTrailingDot(title[0])}}, `;
+      citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} |`;
+      citation.ris += `JF  - ${removeTrailingDot(title[0])}\n`;
+    }
+    // datum vydani
     if (title[1] && title[1].length > 0) {
-      citation.txt += `${title[1]}. `;
-      citation.html += `${title[1]}. `;
+      citation.iso690 += `${title[1]}. `;
+      citation.iso690html += `${title[1]}. `;
+      citation.mla += `${title[1]}`;
+      citation.mlahtml += `${title[1]}`;
     }
-    citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
   }
   // internalpart
   if (title && title.length === 4) {
+    // nazev kapitoly
     if (title[2] && title[2].length > 0) {
-      citation.txt += `${title[2]}. `;
-      citation.html += `${title[2]}. `;
+      citation.iso690 += `${title[2]}. `;
+      citation.iso690html += `${title[2]}. `;
+      citation.mla += `"${title[2]}." `;
+      citation.mlahtml += `"${title[2]}." `;
       citation.bibtex += `title = {${removeTrailingDot(title[2])}}, `;
+      citation.wiki += `${locale['wiki']['chapter']} = ${removeTrailingDot(title[2])} | `;
+      citation.ris += `T1  - ${removeTrailingDot(title[2])}\n`;
     }
+    // In
     if (title[3] && title[3].length > 0) {
-      citation.txt += `${title[3]} `;
-      citation.html += `${title[3]} `;
+      citation.iso690 += `${title[3]} `;
+      citation.iso690html += `${title[3]} `;
     }
+    // autor monografie
+    if (authorsTitle && authorsTitle.iso?.length > 0) {
+      citation.iso690 += `${removeDoubleDot(authorsTitle.iso)} `;
+      citation.iso690html += `${removeDoubleDot(authorsTitle.iso)} `;
+      citation.mla += `${removeDoubleDot(authorsTitle.mla)} `;
+      citation.mlahtml += `${removeDoubleDot(authorsTitle.mla)} `;
+      citation.bibtex += `author = {${authorsTitle.bibtex}}, `;
+      citation.wiki += `${authorsTitle.wiki}`;
+      citation.ris += `${authorsTitle.ris}`;
+    }
+    // nazev monografie
     if (title[0] && title[0].length > 0) {
-      citation.txt += `${title[0]}. `;
-      citation.html += `<i>${title[0]}.</i> `;
+      citation.iso690 += `${title[0]}. `;
+      citation.iso690html += `<i>${title[0]}.</i> `;
+      citation.mla += `${title[0]} `;
+      citation.mlahtml += `<i>${title[0]}</i> `;
       citation.bibtex += `booktitle = {${removeTrailingDot(title[0])}}, `;
+      citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
+      citation.ris += `T2  - ${removeTrailingDot(title[0])}\n`;
     }
   }
+
+  // MERITKO
   if (model === 'map' && scale) {
-    citation.txt += `${scale} `;
-    citation.html += `${scale} `;
+    citation.iso690 += `${scale} `;
+    citation.iso690html += `${scale} `;
   }
+
+  // PUBLICATION
   if (publication) {
-    citation.txt += `${publication.txt} `;
-    citation.html += `${publication.txt} `;
+    citation.iso690 += `${publication.iso} `;
+    citation.iso690html += `${publication.iso} `;
+    citation.mla += `${publication.mla} `;
+    citation.mlahtml += `${publication.mla} `;
     citation.bibtex += `${publication.bibtex} `;
     citation.wiki += `${publication.wiki}`;
     citation.ris += `${publication.ris}`;
   }
+
+  // PHYSICAL DESCRIPTION
   if ((model === 'map' || model === 'graphic') && physicalDesc) {
-    citation.txt += `${physicalDesc} `;
-    citation.html += `${physicalDesc} `;
+    citation.iso690 += `${physicalDesc} `;
+    citation.iso690html += `${physicalDesc} `;
   }
+
+  // ISBN (mla neobsahuje ISBN)
   if (isbn) {
-    citation.txt += `${isbn} `;
-    citation.html += `${isbn} `;
+    citation.iso690 += `${isbn} `;
+    citation.iso690html += `${isbn} `;
     citation.bibtex += `isbn = {${removeTrailingDot(isbn)}}, `;
     citation.wiki += `${locale['wiki']['isbn']} = ${removeTrailingDot(isbn)}|`;
     citation.ris += `SN  - ${removeTrailingDot(isbn)}\n`;
   }
+
+  // ISSN
   if (issn) {
-    citation.txt += `${issn} `;
-    citation.html += `${issn} `;
+    citation.iso690 += `${issn} `;
+    citation.iso690html += `${issn} `;
     citation.bibtex += `isbn = {${removeTrailingDot(issn)}}, `;
     citation.wiki += `${locale['wiki']['issn']} = ${removeTrailingDot(issn)}|`;
     citation.ris += `SN  - ${removeTrailingDot(issn)}\n`;
   }
+
+  // AVAILIBILITY
   if (availibility && ref.length > 0) {
-    citation.txt += locale['available'] + `${availibility}`;
-    citation.html += locale['available'] + `<a href='${availibility}' target='_blank'>${availibility}</a>`;
+    citation.iso690 += locale['available'] + `${availibility}`;
+    citation.iso690html += locale['available'] + `<a href='${availibility}' target='_blank'>${availibility}</a>`;
     citation.bibtex += `url = {${availibility}}`;
   } else {
-    if (citation.txt) {
-      citation.txt = citation.txt.trim();
+    if (citation.iso690) {
+      citation.iso690 = citation.iso690.trim();
     }
-    if (citation.html) {
-      citation.html = citation.html.trim();
+    if (citation.iso690html) {
+      citation.iso690html = citation.iso690html.trim();
+    }
+    if (citation.mla) {
+      citation.mla = citation.mla.trim();
+    }
+    if (citation.mlahtml) {
+      citation.mlahtml = citation.mlahtml.trim();
     }
     if (citation.bibtex) {
       citation.bibtex = removeTrailingComma(citation.bibtex.trim());
@@ -362,6 +457,9 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
   return [citation, apiData, modsData];
 }
+
+
+// =========   FUNKCE PRO ZISKANI DAT O DOKUMENTU ==========
 
 // Získání dat o monografickém dokumentu
 async function getMonographicData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
@@ -385,6 +483,7 @@ async function getMonographicData(data: any, url: string, lang: string, ref: str
   return { 'authors': authors, 'title': title, 'publication': publication, 'scale': scale, 'physicalDesc': physicalDesc, 'issn': issn, 'isbn': isbn, 'availibility': availibility };
 }
 
+// Získání dat o interní části monografického dokumentu
 async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
@@ -395,7 +494,8 @@ async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref
   let modsTitle = titleRequest[1];
 
   // Vygenerování částí citace   
-  let authors = await parseModsAuthors(modsData, lang); 
+  let authors = await parseModsAuthors(modsData, lang);
+  let authorsTitle = await parseModsAuthors(modsTitle, lang);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
   let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, null, pageNumber);
   let issn = '';
@@ -404,7 +504,7 @@ async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref
   }
   let availibility = ref;
 
-  return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
+  return { 'authors': authors, 'authorsTitle': authorsTitle, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
 }
 
 async function getPeriodicalIssueData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
@@ -476,7 +576,8 @@ async function getInternalPartData(data: any, url: string, lang: string, ref: st
   let modsTitle = titleRequest[1];
 
   // Vygenerování částí citace
-  let authors = await parseModsAuthors(modsData, lang);
+  let authorsChapter = await parseModsAuthors(modsData, lang);
+  let authorsTitle = await parseModsAuthors(modsTitle, lang);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
   let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, pageNumber);
   let isbn = '';
@@ -485,21 +586,21 @@ async function getInternalPartData(data: any, url: string, lang: string, ref: st
   }
   let availibility = ref;
   
-  return { 'authors': authors, 'title': title, 'publication': publication, 'isbn': isbn, 'availibility': availibility };
+  return { 'authorsChapter': authorsChapter, 'authorsTitle': authorsTitle, 'title': title, 'publication': publication, 'isbn': isbn, 'availibility': availibility };
 }
 
 // Pomocné funkce
 
 function removeTrailingDot(input: string): string {
   // Check if the string ends with a dot
-  if (input.endsWith('.')) {
+  if (input.endsWith('.') && !input.endsWith('...')) {
     return input.slice(0, -1); // Remove the last character
   }
   return input; // Return the original string if no trailing dot
 }
 function removeDoubleDot(input: string): string {
   // Check if the string ends with a dot
-  if (input.endsWith('..')) {
+  if (input && input.endsWith('..')) {
     return input.slice(0, -1); // Remove the last character
   }
   return input; // Return the original string if no trailing dot

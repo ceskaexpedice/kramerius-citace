@@ -6,7 +6,17 @@ Zdroj normy ISO690:2022: [Výklad ISO690:2022 PDF](https://www.citace.com/Vyklad
 
 Příklady: [Příklady ISO690:2022](https://citace.zcu.cz/home.html)
 
+MLA 9(2021): [easybib.com](https://www.easybib.com/guides/citation-guides/mla-format/mla-citation/)
+
 Bibtex: [bibtex.eu](https://bibtex.eu/)
+
+Wiki monografie: [citace monografie](https://cs.wikipedia.org/wiki/%C5%A0ablona:Citace_monografie)
+
+Wiki periodikum: [citace periodika](https://cs.wikipedia.org/wiki/%C5%A0ablona:Citace_periodika)
+
+RIS [RIS na wiki](https://en.wikipedia.org/wiki/RIS_(file_format))
+
+RIS [RIS na Refman](https://web.archive.org/web/20100726184137/http://www.refman.com/support/risformat_tags_01.asp)
 
 ## Projekt
 
@@ -16,13 +26,14 @@ GitHub: [https://github.com/trineracz/citation-api](https://github.com/trineracz
 
 ### `/citation`
 
-Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs&`
+Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&exp=iso690&format=html&lang=cs`
 
 #### Parametry:
 
 - **uuid**: UUID objektu. Povinny parametr.
-- **format**: `html | txt | bibtex` (default vrací JSON se všemi formaty).
-- **lang**: `cs | en` (default = cs)
+- **exp**: `iso690 | mla | bibtex | wiki | ris | all` (default vrací iso690 ve formátu txt).
+- **format**: `txt | html ` (default vrací pro všechny exp).
+- **lang**: `cs | en | de | sk` (default = cs)
 - **ref**: `true | false` citace s / bez odkazu na digitální dokument (default = false)
 - **debug**: `true | false` citace s api a MODS dokumentu pro kontrolu (default = false)
 

@@ -7,11 +7,17 @@ import { title } from 'process';
 export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
   let locale = getLocale(lang);
   const authorsList: string[] = [];
+  const authorsListIso: string[] = [];
 
-  let names = mods["mods:modsCollection"]["mods:mods"][0]["mods:name"];
-//   console.log('names', JSON.stringify(names, null, 2));
+  let names;
+  if (mods["mods:modsCollection"]) {
+    names = mods["mods:modsCollection"]["mods:mods"][0]["mods:name"];
+  } else {
+    names = mods["modsCollection"]["mods"][0]["name"];
+  }
+  console.log('names', names);
 
-  if (!names) return {'txt': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
+  if (!names) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
 
   let wikiAuthors = '';
   let risAuthors = '';
@@ -56,7 +62,8 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
 
         if (family && family.length > 0 && given && given.length > 0) {
             // Pokud máme příjmení a jméno
-            authorsList.push(`${family.toUpperCase() || ''}, ${given || ''}`.trim());
+            authorsListIso.push(`${family.toUpperCase() || ''}, ${given || ''}`.trim());
+            authorsList.push(`${family}, ${given}`.trim());
             risAuthors += `AU  - ${family}, ${given}\n`;
             if (i === 1) {
                 wikiAuthors += `${locale['wiki']['surname']} = ${family} | ${locale['wiki']['name']} = ${given} | `;
@@ -65,40 +72,56 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
             } 
         } else if (family.length > 0 || given.length > 0) {
             // Pokud máme pouze jedno z nich
+            authorsListIso.push(`${family || given}`.trim());
             authorsList.push(`${family || given}`.trim());
             risAuthors += `AU  - ${family || given}\n`;
             if (i === 1) {
-                wikiAuthors += `${locale['wiki']['surname']} = ${family || given}`;
+                wikiAuthors += `${locale['wiki']['surname']} = ${family || given} | `;
             } else {
-                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family || given}`;
+                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family || given} | `;
             }
         }
         i = i + 1;
     }
   });
 
-  if (authorsList.length === 0) return {'txt': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
-  if (authorsList.length === 1) return {'txt': `${authorsList[0]}.`, 
+  if (authorsList.length === 0) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
+  if (authorsList.length === 1) return {'iso': `${authorsListIso[0]}.`,
+                                        'mla': `${authorsList[0]}.`,
                                         'bibtex': `${authorsList[0]}`, 
                                         'wiki': wikiAuthors, 
                                         'ris': risAuthors};
-  if (authorsList.length > 4) return {'txt': `${authorsList[0]} et al.`, 
+  if (authorsList.length === 2) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
+                                        'mla':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
+                                        'bibtex':`${authorsList.slice().join(' and ')}`,
+                                        'wiki': wikiAuthors,
+                                        'ris': risAuthors};;
+  if (authorsList.length === 3 || authorsList.length === 4) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
+                                                                  'mla':`${authorsListIso[0]}, et al.`,
+                                                                  'bibtex':`${authorsList.slice().join(' and ')}`,
+                                                                  'wiki': wikiAuthors,
+                                                                  'ris': risAuthors};
+  if (authorsList.length > 4) return {'iso': `${authorsListIso[0]} et al.`,
                                       'bibtex': `${authorsList[0]} and others`, 
                                       'wiki': wikiAuthors, 
                                       'ris': risAuthors};
-  return {'txt':`${authorsList.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsList[authorsList.length - 1]}.`,
-          'bibtex':`${authorsList.slice().join(' and ')}`,
-          'wiki': wikiAuthors,
-          'ris': risAuthors};
+  
 }
+
+// ================== PARSE MODS TITLES ==================
 
 export async function parseModsTitles(mods: any, lang: any): Promise<any> {
     let locale = getLocale(lang);
     let titlesList: string = '';
     let wikiTitle = '';
     let risTitle = '';
-    const titleInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:titleInfo"];
-    // console.log('titles', JSON.stringify(titleInfo, null, 2));
+    
+    let titleInfo;
+    if (mods["mods:modsCollection"]) {
+        titleInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:titleInfo"];
+    } else {
+        titleInfo = mods["modsCollection"]["mods"][0]["titleInfo"];
+    }
 
     if (!titleInfo) return ''; // Pokud nejsou žádné tituly, vrátíme prázdný řetězec
 
@@ -156,6 +179,8 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
     return { 'txt': titlesList, 'wiki': wikiTitle, 'ris': risTitle };
 }
 
+// ================== PARSE PERIODICAL TITLE ==================
+
 export async function parsePeriodicalTitle(mods: any, apiData: any, lang: any): Promise<any> {
     let titleName = apiData['root.title'] || '';
     let issueDate = '';
@@ -168,12 +193,15 @@ export async function parsePeriodicalTitle(mods: any, apiData: any, lang: any): 
     }
     if (apiData['model'] === 'supplement') {
         titleName += `. ${apiData['title.search'].trim()}`;
-        // issueDate = apiData['date.str'] || '';
         return [titleName];
     }
     if (apiData['model'] === 'internalpart') {
         partName = apiData['title.search'].trim() || '';
         return [titleName, issueDate, partName, 'In:'];
+    }
+    if (apiData['model'] === 'soundunit' || apiData['model'] === 'track') {
+        partName = apiData['title.search'].trim() || '';
+        return [partName];
     }
     if (apiData['model'] === 'article') {
         issueDate = apiData['date.str'] || '';
@@ -183,6 +211,8 @@ export async function parsePeriodicalTitle(mods: any, apiData: any, lang: any): 
         return [titleName]; 
     }
 }
+
+// ================== PARSE PERIODICAL PUBLISHER ==================
 
 export async function parsePeriodicalPublisher(modsData: any, 
                                                apiData: any, 
@@ -195,7 +225,12 @@ export async function parsePeriodicalPublisher(modsData: any,
                                                modsIssue?: any, 
                                                pageNumber?: any): Promise<any> {
     let locale = getLocale(lang);
-    let publicationData = modsTitle["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
+    let publicationData;
+    if (modsTitle["mods:modsCollection"]) {
+        publicationData = modsTitle["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
+    } else {
+        publicationData = modsTitle["modsCollection"]["mods"][0]["originInfo"][0];
+    }
     let publisher = '';
     let placeOfPublication = '';
     let volume = '';
@@ -211,7 +246,12 @@ export async function parsePeriodicalPublisher(modsData: any,
     if (publicationData) {
         // console.log('publicationData', JSON.stringify(publicationData, null, 2));
         // Získání místa vydání (první místo, kde není authority "marccountry")
-        const places = publicationData["mods:place"];
+        let places;
+        if (publicationData["mods:place"]) {
+            places = publicationData["mods:place"];
+        } else {
+            places = publicationData["place"];
+        }
         if (places) {
             // Najdeme první místo bez authority "marccountry"
             const relevantPlace = places.find((place: any) => place["mods:placeTerm"][0]?.$?.authority !== "marccountry");
@@ -231,8 +271,14 @@ export async function parsePeriodicalPublisher(modsData: any,
             }
         }
         let dateIssued = publicationData["mods:dateIssued"] || '';
+        console.log('dateIssued', dateIssued);
         if (dateIssued.length === 1) {
-            dateIssuedString = dateIssued[0]?._; // Odstraníme mezery na začátku a konci
+            console.log('dateIssued', dateIssued[0]);
+            if (dateIssued[0]?._) {
+                dateIssuedString = dateIssued[0]?._;
+            } else {
+                dateIssuedString = dateIssued[0];
+            }
         } else if (dateIssued.length > 1) {
             dateIssued.forEach((date: any) => {
                 if (date && date?.$?.encoding === 'marc') {
@@ -282,74 +328,158 @@ export async function parsePeriodicalPublisher(modsData: any,
             articlePageEnd = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0] || '';
         }
     }
+    // Získání dat o rozsahu stran kapitoly (internalpart)
+    if (apiData['model'] === 'internalpart') {
+        if (modsData["mods:modsCollection"]) {
+            articlePageStart = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0] || '';
+            articlePageEnd = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0] || '';
+        } else {
+            articlePageStart = modsData["modsCollection"]["mods"][0]["part"]?.[0]?.["extent"]?.[0]?.["start"]?.[0] || '';
+            articlePageEnd = modsData["modsCollection"]["mods"][0]["part"]?.[0]?.["extent"]?.[0]?.["end"]?.[0] || '';
+        }
+    }
 
     // Vytvoření výsledného řetězce
-    let txt = '';
+    let iso = '';
+    let mla = '';
     let bibtex = '';
+    let wiki = '';
+    let ris = '';
     if (placeOfPublication && placeOfPublication.length > 0) {
-        txt += `${placeOfPublication}`;
+        iso += `${placeOfPublication}`;
+        // mla 9 nepouziva misto vydani
         bibtex += `address = {${placeOfPublication}}, `;
+        wiki += ` ${locale['wiki']['place']} = ${placeOfPublication} | `;
+        ris += `PP  - ${placeOfPublication}\n`;
         if (publisher && publisher.length > 0) {
-            txt += `: `;
+            iso += `: `;
         }
     }
     if (publisher && publisher.length > 0) {
-        txt += `${publisher}`;
+        iso += `${publisher}`;
+        // mla += `${publisher}`;
         bibtex += `publisher = {${publisher}}, `;
+        wiki += `${locale['wiki']['publisher']} = ${publisher} | `;
+        ris += `PB  - ${publisher}\n`;
     }
     if (volume && volume.length > 0) {
-        txt += `, ${locale['volume']} ${volume}`;
+        iso += `, ${locale['volume']} ${volume}`;
+        mla += `, ${locale['volume']} ${volume}`;
         bibtex += `volume = {${volume}}, `;
+        wiki += `${locale['wiki']['volume']} = ${volume} | `;
+        ris += `VL  - ${volume}\n`;
     }
-    if (apiData['model'] === 'internalpart') {
+    if (apiData['model'] === 'internalpart' || apiData['model'] === 'soundunit' || apiData['model'] === 'track') {
+        console.log('internalpart', dateIssuedString);
         if (dateIssuedString && dateIssuedString.length > 0) {
-            txt += `, ${dateIssuedString}`;
+            if (publisher && publisher.length > 0) {
+                iso += `, ${dateIssuedString}`;
+                mla += `, ${dateIssuedString}`;
+            } else {
+                iso += `${dateIssuedString}`;
+                mla += `${dateIssuedString}`;
+            }
             bibtex += `year = {${dateIssuedString}}, `;
+            wiki += `${locale['wiki']['year']} = ${dateIssuedString} | `;
+            ris += `PY  - ${dateIssuedString}\n`;
         } else if (dateIssuedStringStart || dateIssuedStringEnd) {
-            txt += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+            iso += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+            mla += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
             bibtex += `year = {${dateIssuedStringStart}-${dateIssuedStringEnd}}, `;
+            wiki += `${locale['wiki']['year']} = ${dateIssuedStringStart}-${dateIssuedStringEnd} | `;
+            ris += `Y1  - ${dateIssuedStringStart}\nY2  - ${dateIssuedStringEnd}\n`;
         }
     } 
     if (volumeDate && volumeDate.length > 0 && volumeDate !== volume) {
-        txt += ` (${volumeDate})`;
-        bibtex += `date = {${volumeDate}}, `;
+        iso += ` (${volumeDate})`;
+        if (!issue) {
+            mla += `, ${volumeDate}`;
+            bibtex += `date = {${volumeDate}}, `;
+            wiki += `${locale['wiki']['year']} = ${volumeDate} | `;
+            if (volumeDate.length === 4) {
+                ris += `Y1  - ${volumeDate}\n`;
+            } else {
+                let dates = volumeDate.split('-');
+                ris += `Y1  - ${dates[0]}\nY2  - ${dates[1]}\n`;
+            }
+        }
     }
     if (issue && issue.length > 0) {
         if (apiData['model'] === 'supplement') {
-            txt += `, ${locale['supplement']} ${issue}`;
-            bibtex += `issue = {${issue}}, `;
+            iso += `, ${locale['supplement']} ${issue}`;
+            mla += `, ${locale['supplement']} ${issue}`;
+            bibtex += `number = {${issue}}, `;
+            wiki += `${locale['wiki']['supplement']} = ${issue} | `;
+            ris += `IS  - ${issue}\n`;
         } else {
-            txt += `, ${locale['issue']} ${issue}`;
-            bibtex += `issue = {${issue}}, `;
+            iso += `, ${locale['issue']} ${issue}`;
+            mla += `, ${locale['issue']} ${issue}`;
+            bibtex += `number = {${issue}}, `;
+            wiki += `${locale['wiki']['issue']} = ${issue} | `;
+            ris += `IS  - ${issue}\n`;
+        }
+    }
+    if (issueDate && issueDate.length > 0 && issueDate !== issue) {
+        bibtex += `date = {${issueDate}}, `;
+        wiki += `${locale['wiki']['day']} = ${issueDate} | `;
+        if (issueDate.length === 4) {
+            ris += `Y1  - ${issueDate}\n`;
+        } else {
+            if (issueDate && issueDate.includes('-')) {
+                let dates = issueDate.split('-');
+                ris += `Y1  - ${dates[0]}\n`;
+                if (dates && dates[1] && dates[1].length > 0) {
+                    ris += `Y2  - ${dates[1]}\n`;
+                } 
+            }
+            if (issueDate && issueDate.includes('.')) {
+                let dates = issueDate.split('.');
+                if (dates && dates.length === 3) {
+                    ris += `Y1  - ${dates[2]}/${dates[1]}/${dates[0]}/\n`;
+                }
+            }
         }
     }
     if (articlePageStart && articlePageStart.length > 0) {
-        txt += `, ${locale['page']} ${articlePageStart}`;
+        iso += `, ${locale['page']} ${articlePageStart}`;
+        mla += `, ${locale['page']} ${articlePageStart}`;
         bibtex += `pages = {${articlePageStart}`;
+        wiki += `${locale['wiki']['pages']} = ${articlePageStart}`;
+        ris += `SP  - ${articlePageStart}\n`;
         if (articlePageEnd && articlePageEnd.length > 0 && articlePageEnd !== articlePageStart) {
-            txt += `-${articlePageEnd}.`;
-            bibtex += `-${articlePageEnd}},`;
+            iso += `-${articlePageEnd}.`;
+            mla += `-${articlePageEnd}}, `;
+            bibtex += `--${articlePageEnd}},`;
+            wiki += `-${articlePageEnd} | `;
+            ris += `EP  - ${articlePageEnd}\n`;
         } else {
             bibtex += `},`;
+            wiki += ` | `;
+            ris += `EP  - ${articlePageStart}\n`;
         }
-    }
-    if (pageNumber && pageNumber.length > 0) {
-        txt += `, ${locale['page']} ${pageNumber}.`;
+    } else if (pageNumber && pageNumber.length > 0) {
+        iso += `, ${locale['page']} ${pageNumber}.`;
+        mla += `, ${locale['page']} ${pageNumber}.`;
         bibtex += `, pages = {${pageNumber}}`;
+        wiki += `${locale['wiki']['pages']} = ${pageNumber} | `;
+        ris += `SP  - ${pageNumber}\n`;
+        ris += `EP  - ${pageNumber}\n`;
     } else {
-        txt += '.';
+        iso += '.';
+        mla += '.';
     }
 
-    return {'txt': txt, 'bibtex': bibtex};
+    return {'iso': iso, 'mla': mla, 'bibtex': bibtex, 'wiki': wiki, 'ris': ris};
 }
 
+// ================== PARSE MODS PUBLISHER ==================
 
 export async function parseModsPublisher(mods: any, lang: any, pageNumber?: string): Promise<any> {
     let locale = getLocale(lang);
     if (mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"] && mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0]) {
         const originInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
 
-        if (!originInfo) return {'txt': '', 'bibtex': ''}; // Pokud nejsou k dispozici žádné nakladatelské údaje, vrátíme prázdný řetězec.
+        if (!originInfo) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou k dispozici žádné nakladatelské údaje, vrátíme prázdný řetězec.
 
         // Získání místa vydání (první místo, kde není authority "marccountry")
         const places = originInfo["mods:place"];
@@ -406,34 +536,43 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         const edition = originInfo["mods:edition"] || '';
 
         // Vytvoření výsledného řetězce
-        let txt = '';
+        let iso = '';
+        let mla = '';
         let bibtex = '';
         let wiki = '';
         let ris = '';
 
         if (edition) {
-            txt += `${edition[0].trim()}`; // Odstraníme mezery na začátku a konci
+            iso += `${edition[0].trim()}`; // Odstraníme mezery na začátku a konci
             bibtex += `edition = {${edition[0].trim()}}, `; // Odstraníme mezery na začátku a konci
             wiki += `${locale['wiki']['edition']} = ${edition[0].trim()} | `;
             ris += `ET  - ${edition[0].trim()}\n`;
-            if (!txt.endsWith('.')) {
-                txt += '.'; // Přidáme tečku, pokud řetězec nekončí tečkou
+            if (!iso.endsWith('.')) {
+                iso += '.'; // Přidáme tečku, pokud řetězec nekončí tečkou
             }
-            txt += ' '; // Přidáme mezeru po tečce
+            iso += ' '; // Přidáme mezeru po tečce
         }
 
         if (placeOfPublication && placeOfPublication.length > 0) {
-            txt += `${placeOfPublication}`;
+            iso += `${placeOfPublication}`;
+            // mla += `${placeOfPublication}`; ve verzi 9 se nepouziva misto vydani
             if (publisher && publisher.length > 0) {
-                txt += `: `;
+                iso += `: `;
             }
             bibtex += `address = {${placeOfPublication}}, `;
             wiki += `${locale['wiki']['place']} = ${placeOfPublication} | `;
             ris += `PP  - ${placeOfPublication}\n`;
-        }
+        } 
+        // else {
+        //     mla += 'N.p.';
+        //     if (publisher && publisher.length > 0) {
+        //         mla += `: `;
+        //     }
+        // }
 
         if (publisher && publisher.length > 0) {
-            txt += `${publisher}`;
+            iso += `${publisher}`;
+            mla += `${publisher}`;
             bibtex += `publisher = {${publisher}}, `;
             wiki += `${locale['wiki']['publisher']} = ${publisher} | `;
             ris += `PB  - ${publisher}\n`;
@@ -441,25 +580,33 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
 
         if (dateIssuedString && dateIssuedString.length > 0) {
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
-                txt += `, ${dateIssuedString}`;
+                iso += `, ${dateIssuedString}`;
+                mla += `, ${dateIssuedString}`;
             } else {
-                txt += `${dateIssuedString}`;
+                iso += `${dateIssuedString}`;
+                mla += `${dateIssuedString}`;
             }
             bibtex += `year = {${dateIssuedString}}, `;
             wiki += `${locale['wiki']['year']} = ${dateIssuedString} | `;
             ris += `PY  - ${dateIssuedString}\n`;
         } else if (dateIssuedStringStart || dateIssuedStringEnd) {
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
-                txt += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+                iso += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+                mla += `, ${dateIssuedStringStart}-${dateIssuedStringEnd}`;
             } else {
-                txt += `${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+                iso += `${dateIssuedStringStart}-${dateIssuedStringEnd}`;
+                mla += `${dateIssuedStringStart}-${dateIssuedStringEnd}`;
             }
             bibtex += `year = {${dateIssuedStringStart}-${dateIssuedStringEnd}}, `;
+            wiki += `${locale['wiki']['year']} = ${dateIssuedStringStart}-${dateIssuedStringEnd} | `;
+            ris += `Y1  - ${dateIssuedStringStart}\nY2  - ${dateIssuedStringEnd}\n`;
         } else if (dateIssuedStringOther && dateIssuedStringOther.length > 0) {
             if ((publisher && publisher.length > 0) || (placeOfPublication && placeOfPublication.length > 0)) {
-                txt += `, ${dateIssuedStringOther}`;
+                iso += `, ${dateIssuedStringOther}`;
+                mla += `, ${dateIssuedStringOther}`;
             } else {
-                txt += `${dateIssuedStringOther}`;
+                iso += `${dateIssuedStringOther}`;
+                mla += `${dateIssuedStringOther}`;
             }
             bibtex += `year = {${dateIssuedStringOther}}, `;
             wiki += `${locale['wiki']['year']} = ${dateIssuedStringOther} | `;
@@ -468,20 +615,22 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
 
         if (pageNumber && pageNumber.length > 0) {
             console.log('pageNumber', pageNumber);
-            txt += `, ${locale['page']} ${pageNumber}.`;
+            iso += `, ${locale['page']} ${pageNumber}.`;
+            mla += `, ${locale['page']} ${pageNumber}.`;
             bibtex += `pages = {${pageNumber}}`;
-            console.log('txt', txt);
         } else {
-            txt += '.';
+            iso += '.';
+            mla += '.';
         }
 
         // Pokud nemáme žádná data, vrátíme prázdný řetězec, jinak vrátíme výsledek
-        return {'txt': txt.trim() ? txt : '', 
+        return {'iso': iso.trim() ? iso : '',
+                'mla': mla.trim() ? mla : '',
                 'bibtex': bibtex,
                 'wiki': wiki,
                 'ris': ris};
     } else {
-        return {'txt': '', 'bibtex': '', 'wiki': '', 'ris': ''};
+        return {'iso': '', 'bibtex': '', 'wiki': '', 'ris': ''};
     }
 }
 
