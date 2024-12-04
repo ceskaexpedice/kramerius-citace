@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import { getLocale } from '../locales';
 import { parseStringPromise } from 'xml2js';
-import { parseModsAuthors, parseModsTitles, parseModsPublisher, parseModsCartographics, parsePhysicalDescription, parsePeriodicalTitle, parsePeriodicalPublisher } from './modsParser';
+import { parseModsAuthors, parseModsTitles, parseModsPublisher, parseModsCartographics, parsePhysicalDescription, parsePeriodicalTitle, parsePeriodicalPublisher, parseDoi } from './modsParser';
 
 
 // Funkce pro stažení dat přes API
@@ -100,6 +100,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
   let publication;
   let isbn;
   let issn;
+  let doi;
   let availibility;
   let scale;
   let physicalDesc;
@@ -208,6 +209,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     title = articleData.title;
     publication = articleData.publication;
     issn = articleData.issn;
+    doi = articleData.doi;
     availibility = articleData.availibility;
   }
 
@@ -406,6 +408,17 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.iso690html += `${physicalDesc} `;
   }
 
+  // DOI
+  if (doi) {
+    citation.iso690 += `DOI: https://doi.org/${doi}. `;
+    citation.iso690html += `DOI: <a href='https://doi.org/${doi}' target='_blank'>https://doi.org/${doi}</a>. `;
+    citation.mla += `https://doi.org/${doi}. `;
+    citation.mlahtml += `<a href='https://doi.org/${doi}' target='_blank'>https://doi.org/${doi}</a>. `;
+    citation.bibtex += `doi = {${doi}}, `;
+    citation.wiki += `${locale['wiki']['doi']} = ${doi}|`;
+    citation.ris += `DO  - ${doi}\n`;
+  }
+
   // ISBN (mla neobsahuje ISBN)
   if (isbn) {
     citation.iso690 += `${isbn} `;
@@ -557,13 +570,16 @@ async function getPeriodicalArticleData(data: any, url: string, lang: string, re
   let authors = await parseModsAuthors(modsData, lang);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
   let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, apiDataIssue, modsIssue);
+  let doi = await parseDoi(modsData);
   let issn = '';
   if (apiDataTitle['id_issn'] !== undefined) {
     issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
   }
   let availibility = ref;
 
-  return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
+  console.log('article', title, authors, publication);
+
+  return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility, 'doi': doi };
 }
 
 async function getInternalPartData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {

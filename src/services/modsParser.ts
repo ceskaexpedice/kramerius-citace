@@ -102,6 +102,7 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
                                                                   'wiki': wikiAuthors,
                                                                   'ris': risAuthors};
   if (authorsList.length > 4) return {'iso': `${authorsListIso[0]} et al.`,
+                                      'mla':`${authorsListIso[0]}, et al.`,
                                       'bibtex': `${authorsList[0]} and others`, 
                                       'wiki': wikiAuthors, 
                                       'ris': risAuthors};
@@ -390,7 +391,7 @@ export async function parsePeriodicalPublisher(modsData: any,
             ris += `Y1  - ${dateIssuedStringStart}\nY2  - ${dateIssuedStringEnd}\n`;
         }
     } 
-    if (volumeDate && volumeDate.length > 0 && volumeDate !== volume) {
+    if ( apiData['model'] === 'periodicalvolume' && volumeDate && volumeDate.length > 0 && volumeDate !== volume) {
         iso += ` (${volumeDate})`;
         if (!issue) {
             mla += `, ${volumeDate}`;
@@ -420,6 +421,7 @@ export async function parsePeriodicalPublisher(modsData: any,
         }
     }
     if (issueDate && issueDate.length > 0 && issueDate !== issue) {
+        mla += `${issueDate}`;
         bibtex += `date = {${issueDate}}, `;
         wiki += `${locale['wiki']['day']} = ${issueDate} | `;
         if (issueDate.length === 4) {
@@ -448,7 +450,7 @@ export async function parsePeriodicalPublisher(modsData: any,
         ris += `SP  - ${articlePageStart}\n`;
         if (articlePageEnd && articlePageEnd.length > 0 && articlePageEnd !== articlePageStart) {
             iso += `-${articlePageEnd}.`;
-            mla += `-${articlePageEnd}}, `;
+            mla += `-${articlePageEnd}, `;
             bibtex += `--${articlePageEnd}},`;
             wiki += `-${articlePageEnd} | `;
             ris += `EP  - ${articlePageEnd}\n`;
@@ -692,6 +694,21 @@ export function parsePhysicalDescription(mods: any, lang: any): string {
     console.log('physicalDescription', physicalDescription);
 
     return physicalDescription;
+}
+
+export function parseDoi(mods: any): string {
+    let doi: string = '';
+    const identifiers = mods["mods:modsCollection"]["mods:mods"][0]["mods:identifier"];
+
+    if (!identifiers) return ''; // Pokud nejsou žádné identifikátory, vrátíme prázdný řetězec
+
+    identifiers.forEach((identifierObj: any) => {
+        if (identifierObj?.$?.type === 'doi') {
+            doi = identifierObj._ || '';
+        }
+    });
+
+    return doi;
 }
 
 

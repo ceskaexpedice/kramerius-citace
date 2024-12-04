@@ -25,6 +25,7 @@
         "issue": "číslo",
         "pages": "strany",
         "journal": "periodikum",
-        "chapter": "kapitola"
+        "chapter": "kapitola",
+        "doi": "doi"
     }
 }
