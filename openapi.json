@@ -121,7 +121,9 @@
             "description": "reference to source in the citation",
             "schema": {
               "type": "string",
-              "example": "https://www.digitalniknihovna.cz/mzk/uuid/uuid:309d4d59-4eb8-4eb3-8606-94d3aa5a64bd"
+              "enum": [
+                "https://www.digitalniknihovna.cz/mzk/uuid/uuid:309d4d59-4eb8-4eb3-8606-94d3aa5a64bd"
+              ]
             }
           },
           {

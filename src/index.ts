@@ -22,7 +22,7 @@ const config = {
   //documentation_api_base_url: 'http://localhost:3000/'
 
   //prod
-  version : '1.3.1',
+  version : '1.3.2',
   production_build: true,
   documentation_api_base_url: 'https://citace.ceskadigitalniknihovna.cz/'
 }
