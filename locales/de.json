@@ -6,5 +6,26 @@
     "volume": "Bd.",
     "issue": "Ausg.",
     "pages": "S.",
-    "supplement": "Zusatz Nr."
+    "supplement": "Zusatz Nr.",
+    "wiki": {
+        "monograph": "Citace monografie",
+        "periodical": "Citace periodika",
+        "title": "titul",
+        "author_link": "autor",
+        "surname": "příjmení",
+        "name": "jméno",
+        "edition": "vydání",
+        "place": "místo",
+        "publisher": "vydavatel",
+        "year": "rok vydání",
+        "day": "den vydání",
+        "isbn": "isbn",
+        "issn": "issn",
+        "volume": "ročník",
+        "issue": "číslo",
+        "pages": "strany",
+        "journal": "periodikum",
+        "chapter": "kapitola",
+        "doi": "doi"
+    }
 }
