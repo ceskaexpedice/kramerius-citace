@@ -123,7 +123,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     if (model === 'page') {
       let pageNumber = apiData['page.number'] || '';
       data = await fetchItemData(url, apiData['own_parent.pid']);
-      monographicData = await getMonographicData(data, lang, ref, pageNumber);
+      monographicData = await getMonographicData(data, url, lang, ref, pageNumber);
     } else {
       monographicData = await getMonographicData(data, url, lang, ref);
     }
@@ -476,6 +476,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
 // Získání dat o monografickém dokumentu
 async function getMonographicData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
+  console.log('pageNumber', pageNumber);
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
   let authors = await parseModsAuthors(modsData, lang);

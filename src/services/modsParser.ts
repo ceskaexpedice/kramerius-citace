@@ -474,6 +474,7 @@ export async function parsePeriodicalPublisher(modsData: any,
 // ================== PARSE MODS PUBLISHER ==================
 
 export async function parseModsPublisher(mods: any, lang: any, pageNumber?: string): Promise<any> {
+    console.log('pageNumber', pageNumber);
     let locale = getLocale(lang);
     if (mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"] && mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0]) {
         const originInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
@@ -502,6 +503,9 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
             publisher = publishers[0] || '';
             if (publisher && publisher.startsWith('[') && !publisher.endsWith(']')) {
                 publisher = publisher + ']';
+            }
+            if (publisher && publisher.endsWith(']') && !publisher.startsWith('[')) {
+                publisher = '[' + publisher;
             }
         }
 
