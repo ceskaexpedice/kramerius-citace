@@ -18,7 +18,7 @@ paths:
   # Include paths from different files  
   /:
     $ref: './_api_.yaml'
-  /citation:
+  /api/v1:
     $ref: './_api_citation_.yaml'  
   # /test:
   #   $ref: './_api_test.yaml'

@@ -41,7 +41,7 @@
         }
       }
     },
-    "/citation": {
+    "/api/v1": {
       "get": {
         "summary": "Get citation based on url and uuid",
         "tags": [

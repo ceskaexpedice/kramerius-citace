@@ -47,7 +47,7 @@ app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
 
-app.get('/citation', getCitation);
+app.get('/api/v1', getCitation);
 app.get('/test', testEndpoint);
 
 app.get('/', (req, res) => {
@@ -89,10 +89,10 @@ app.get('/', (req, res) => {
       <main>
         <h2>Citation API Documentation</h2>
         <p>Version ${config.version}</p>
-        <p>See the <a href="https://github.com/trineracz/citation-api">GitHub repository</a> or <a href="${baseUrl}/api-docs">API documentation</a>.
-        <p>Or try the <code>/citation</code> endpoint, for example:</p>
-        <p><a href="${baseUrl}/citation?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs">
-          ${baseUrl}/citation?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs
+        <p>See the <a href="https://github.com/ceskaexpedice/kramerius-citace">GitHub repository</a> or <a href="${baseUrl}/api-docs">API documentation</a>.
+        <p>Or try the <code>/api/v1</code> endpoint, for example:</p>
+        <p><a href="${baseUrl}/api/v1?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs">
+          ${baseUrl}/api/v1?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&format=html&lang=cs
         </a></p>
       </main>
 

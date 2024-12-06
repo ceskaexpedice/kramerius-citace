@@ -114,6 +114,7 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
 export async function parseModsTitles(mods: any, lang: any): Promise<any> {
     let locale = getLocale(lang);
     let titlesList: string = '';
+    let wikiTitleString = '';
     let wikiTitle = '';
     let risTitle = '';
     
@@ -148,29 +149,36 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
             if (title && String(title).length > 0) {
                 // console.log('title', title);
                 titlesList += (`${title}`);
-                wikiTitle += `${locale['wiki']['title']} = ${title} | `;
+                wikiTitleString += `${title}`;
                 risTitle += `TI  - ${title}\n`;
             }
             if (subTitle && String(subTitle).length > 0) {
                 // console.log('subTitle', subTitle);
                 titlesList += (`: ${subTitle}`);
+                wikiTitleString += `: ${subTitle}`;
+                wikiTitle = `${locale['wiki']['title']} = ${wikiTitleString} | `;
+                if (!String(subTitle).endsWith('.')) {
+                    titlesList += ('.');
+                }
             } else if (String(title).length > 0) {
                 if (!String(titlesList).endsWith('.')) {
                     titlesList += ('.');
+                    wikiTitle += `${locale['wiki']['title']} = ${title} | `;
                 }
                 // titlesList += ('.');
             }
             if (partNumber && String(partNumber).length > 0) {
                 titlesList += (` ${locale['part']} ${partNumber}`);
-                // if (!String(partNumber).endsWith('.')) {
-                //     titlesList += ('.');
-                // }
+
+                if (!String(partNumber).endsWith('.')) {
+                    titlesList += ('.');
+                }
             }
             if (partName && String(partName).length > 0) {
                 titlesList += (` ${partName}`);
-                // if (!String(partName).endsWith('.')) {
-                //     titlesList += ('.');
-                // }
+                if (!String(partName).endsWith('.')) {
+                    titlesList += ('.');
+                }
             }
         }
     });

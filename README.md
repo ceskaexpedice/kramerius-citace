@@ -24,9 +24,9 @@ GitHub: [https://github.com/trineracz/citation-api](https://github.com/trineracz
 
 ## Popis API
 
-### `/citation`
+### `/api/v1`
 
-Např. `http://localhost:3000/citation?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&exp=iso690&format=html&lang=cs`
+Např. `http://localhost:3000/api/v1?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&exp=iso690&format=html&lang=cs`
 
 #### Parametry:
 
