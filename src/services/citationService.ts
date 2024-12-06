@@ -285,8 +285,8 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.mla += `${removeTrailingDot(titleMono.txt)}. `;
     citation.mlahtml += `<i>${removeTrailingDot(titleMono.txt)}.</i> `;
     citation.bibtex += `title = {${removeTrailingDot(titleMono.txt)}}, `;
-    citation.wiki += `${removeTrailingDot(titleMono.wiki)}`;
-    citation.ris += `${removeTrailingDot(titleMono.ris)}`;
+    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(titleMono.txt)} | `;
+    citation.ris += `TI  - ${removeTrailingDot(titleMono.txt)}\n`;
   }
 
   // PERIODICAL TITLE

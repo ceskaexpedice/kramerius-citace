@@ -92,17 +92,17 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
                                         'wiki': wikiAuthors, 
                                         'ris': risAuthors};
   if (authorsList.length === 2) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
-                                        'mla':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
+                                        'mla':`${authorsList.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsList[authorsList.length - 1]}.`,
                                         'bibtex':`${authorsList.slice().join(' and ')}`,
                                         'wiki': wikiAuthors,
                                         'ris': risAuthors};;
   if (authorsList.length === 3 || authorsList.length === 4) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
-                                                                  'mla':`${authorsListIso[0]}, et al.`,
+                                                                  'mla':`${authorsList[0]}, et al.`,
                                                                   'bibtex':`${authorsList.slice().join(' and ')}`,
                                                                   'wiki': wikiAuthors,
                                                                   'ris': risAuthors};
   if (authorsList.length > 4) return {'iso': `${authorsListIso[0]} et al.`,
-                                      'mla':`${authorsListIso[0]}, et al.`,
+                                      'mla':`${authorsList[0]}, et al.`,
                                       'bibtex': `${authorsList[0]} and others`, 
                                       'wiki': wikiAuthors, 
                                       'ris': risAuthors};
@@ -114,9 +114,6 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
 export async function parseModsTitles(mods: any, lang: any): Promise<any> {
     let locale = getLocale(lang);
     let titlesList: string = '';
-    let wikiTitleString = '';
-    let wikiTitle = '';
-    let risTitle = '';
     
     let titleInfo;
     if (mods["mods:modsCollection"]) {
@@ -147,29 +144,22 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
 
              // FORMAT MONOGRAFIE: Název: podnázev. Část číslo. Název části.
             if (title && String(title).length > 0) {
-                // console.log('title', title);
                 titlesList += (`${title}`);
-                wikiTitleString += `${title}`;
-                risTitle += `TI  - ${title}\n`;
             }
             if (subTitle && String(subTitle).length > 0) {
                 // console.log('subTitle', subTitle);
                 titlesList += (`: ${subTitle}`);
-                wikiTitleString += `: ${subTitle}`;
-                wikiTitle = `${locale['wiki']['title']} = ${wikiTitleString} | `;
-                if (!String(subTitle).endsWith('.')) {
-                    titlesList += ('.');
-                }
             } else if (String(title).length > 0) {
                 if (!String(titlesList).endsWith('.')) {
                     titlesList += ('.');
-                    wikiTitle += `${locale['wiki']['title']} = ${title} | `;
                 }
-                // titlesList += ('.');
             }
             if (partNumber && String(partNumber).length > 0) {
-                titlesList += (` ${locale['part']} ${partNumber}`);
-
+                if (!String(partNumber).startsWith('Díl') && !String(partNumber).startsWith('díl') && !String(partNumber).startsWith('část') && !String(partNumber).startsWith('Část')) {
+                    titlesList += (` ${locale['part']} ${partNumber}`);
+                } else {
+                    titlesList += (` ${partNumber}`);
+                }
                 if (!String(partNumber).endsWith('.')) {
                     titlesList += ('.');
                 }
@@ -182,10 +172,9 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
             }
         }
     });
-    // console.log('titlesList', titlesList);
-    // Vrátíme všechny tituly spojené dohromady
+    // Vrátíme všechny části názvu spojené dohromady
     
-    return { 'txt': titlesList, 'wiki': wikiTitle, 'ris': risTitle };
+    return { 'txt': titlesList, 'wiki': `${locale['wiki']['title']} = ${titlesList} | `, 'ris': `TI  - ${titlesList}\n` };
 }
 
 // ================== PARSE PERIODICAL TITLE ==================
