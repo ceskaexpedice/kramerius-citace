@@ -15,7 +15,6 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
   } else {
     names = mods["modsCollection"]["mods"][0]["name"];
   }
-  console.log('names', names);
 
   if (!names) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
 
@@ -28,6 +27,7 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
     // Ověření, že namePart existuje a je polem
     // vyfiltruji names, ktere neobsahuji nameTitleGroup (uniformni jmeno)
     if (!name.$?.nameTitleGroup) {
+        const nameType = name.$?.type;
         const namePart = name['mods:namePart'];
         if (!namePart || !Array.isArray(namePart)) return;
         
@@ -62,7 +62,11 @@ export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
 
         if (family && family.length > 0 && given && given.length > 0) {
             // Pokud máme příjmení a jméno
-            authorsListIso.push(`${family.toUpperCase() || ''}, ${given || ''}`.trim());
+            if (nameType !== 'corporate') {
+                authorsListIso.push(`${family.toUpperCase() || ''}, ${given || ''}`.trim());
+            } else {
+                authorsListIso.push(`${family || ''}, ${given || ''}`.trim());
+            }
             authorsList.push(`${family}, ${given}`.trim());
             risAuthors += `AU  - ${family}, ${given}\n`;
             if (i === 1) {
@@ -269,9 +273,7 @@ export async function parsePeriodicalPublisher(modsData: any,
             }
         }
         let dateIssued = publicationData["mods:dateIssued"] || '';
-        console.log('dateIssued', dateIssued);
         if (dateIssued.length === 1) {
-            console.log('dateIssued', dateIssued[0]);
             if (dateIssued[0]?._) {
                 dateIssuedString = dateIssued[0]?._;
             } else {
@@ -368,7 +370,6 @@ export async function parsePeriodicalPublisher(modsData: any,
         ris += `VL  - ${volume}\n`;
     }
     if (apiData['model'] === 'internalpart' || apiData['model'] === 'soundunit' || apiData['model'] === 'track') {
-        console.log('internalpart', dateIssuedString);
         if (dateIssuedString && dateIssuedString.length > 0) {
             if (publisher && publisher.length > 0) {
                 iso += `, ${dateIssuedString}`;
@@ -474,7 +475,6 @@ export async function parsePeriodicalPublisher(modsData: any,
 // ================== PARSE MODS PUBLISHER ==================
 
 export async function parseModsPublisher(mods: any, lang: any, pageNumber?: string): Promise<any> {
-    console.log('pageNumber', pageNumber);
     let locale = getLocale(lang);
     if (mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"] && mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0]) {
         const originInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
@@ -617,7 +617,6 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         }
 
         if (pageNumber && pageNumber.length > 0) {
-            console.log('pageNumber', pageNumber);
             iso += `, ${locale['page']} ${pageNumber}.`;
             mla += `, ${locale['page']} ${pageNumber}.`;
             bibtex += `pages = {${pageNumber}}`;
@@ -692,9 +691,6 @@ export function parsePhysicalDescription(mods: any, lang: any): string {
     } else {
         return physicalDescription + '.';
     }
-    console.log('physicalDescription', physicalDescription);
-
-    return physicalDescription;
 }
 
 export function parseDoi(mods: any): string {

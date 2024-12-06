@@ -9,8 +9,6 @@ import { parseModsAuthors, parseModsTitles, parseModsPublisher, parseModsCartogr
 async function fetchItemData(url: string, uuid: string) {
   const api_url = `${url}/search/api/client/v7.0/search?q=pid:%22${uuid}%22&rows=1`;
   const mods_url = `${url}/search/api/client/v7.0/items/${uuid}/metadata/mods`;
-  
-  console.log('Fetching data', api_url, mods_url);
 
   try {
     const api_response = await axios.get(api_url);
@@ -132,7 +130,6 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     }
     authors = monographicData.authors;
     titleMono = monographicData.title;
-    console.log('titleMono', titleMono);
     publication = monographicData.publication;
     scale = monographicData.scale;
     physicalDesc = monographicData.physicalDesc;
@@ -228,8 +225,6 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     publication = soundunitData.publication;
     issn = soundunitData.issn;
     availibility = soundunitData.availibility;
-
-    console.log('soundunitData', soundunitData.title);
   }
 
   // =========   SESTAVENI CITACE ==========
@@ -476,7 +471,6 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
 // Získání dat o monografickém dokumentu
 async function getMonographicData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
-  console.log('pageNumber', pageNumber);
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
   let authors = await parseModsAuthors(modsData, lang);
@@ -577,8 +571,6 @@ async function getPeriodicalArticleData(data: any, url: string, lang: string, re
     issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
   }
   let availibility = ref;
-
-  console.log('article', title, authors, publication);
 
   return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility, 'doi': doi };
 }
