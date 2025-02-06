@@ -620,6 +620,8 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
             iso += `, ${locale['page']} ${pageNumber}.`;
             mla += `, ${locale['page']} ${pageNumber}.`;
             bibtex += `pages = {${pageNumber}}`;
+            wiki += `${locale['wiki']['pages']} = ${pageNumber} | `;
+            ris += `SP  - ${pageNumber}\n`;
         } else {
             iso += '.';
             mla += '.';
