@@ -20,7 +20,7 @@ RIS [RIS na Refman](https://web.archive.org/web/20100726184137/http://www.refman
 
 ## Projekt
 
-GitHub: (https://github.com/ceskaexpedice/kramerius-citace)[https://github.com/ceskaexpedice/kramerius-citace]
+GitHub: [https://github.com/ceskaexpedice/kramerius-citace](https://github.com/ceskaexpedice/kramerius-citace)
 
 ## Popis API
 
