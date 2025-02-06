@@ -20,7 +20,7 @@ RIS [RIS na Refman](https://web.archive.org/web/20100726184137/http://www.refman
 
 ## Projekt
 
-GitHub: [https://github.com/trineracz/citation-api](https://github.com/trineracz/citation-api)
+GitHub: (https://github.com/ceskaexpedice/kramerius-citace)[https://github.com/ceskaexpedice/kramerius-citace]
 
 ## Popis API
 
@@ -36,6 +36,19 @@ Např. `http://localhost:3000/api/v1?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827
 - **lang**: `cs | en | de | sk` (default = cs)
 - **ref**: `true | false` citace s / bez odkazu na digitální dokument (default = false)
 - **debug**: `true | false` citace s api a MODS dokumentu pro kontrolu (default = false)
+
+## Použití v [uživatelském rozhraní Krameria](https://github.com/ceskaexpedice/kramerius-web-client)
+
+Doplňte do `/assets/shared/globals.js`
+
+```
+var APP_GLOBAL = {
+...
+  citationService: 'https://citace.ceskadigitalniknihovna.cz',
+  citationServiceType: 'new',
+  krameriusList: [
+...
+```
 
 
 ## Provoz
