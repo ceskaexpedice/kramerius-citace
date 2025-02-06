@@ -117,7 +117,7 @@ docker run -p 1234:3000 martinrehanek/citation-api
 ## API
 Webová dokumentace je dostupná na nasezené aplikaci, na cestě `/api-docs`.
 
-http://localhost:3000/api-docs/
+https://citace.ceskadigitalniknihovna.cz/api-docs/
 
 ### build OpenAPI dokumentace
 Dokumentace se upravuje v souborech v adresáři `openapi-src`. Následně je potřeba z těchto soborů vygenerovat výsledný soubor `openapi.json` takto:
