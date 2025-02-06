@@ -437,6 +437,10 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.iso690 += locale['available'] + `${availibility}`;
     citation.iso690html += locale['available'] + `<a href='${availibility}' target='_blank'>${availibility}</a>`;
     citation.bibtex += `url = {${availibility}}`;
+    citation.wiki += `url = ${availibility} `;
+    citation.ris += `L1  - ${availibility}\n`;
+    citation.mla += `Digitální knihovna, ${availibility}`;
+    citation.mlahtml += `Digitální knihovna, <a href='${availibility}' target='_blank'>${availibility}</a>. `;
   } else {
     if (citation.iso690) {
       citation.iso690 = citation.iso690.trim();

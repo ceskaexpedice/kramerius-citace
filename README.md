@@ -34,7 +34,7 @@ Např. `http://localhost:3000/api/v1?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827
 - **exp**: `iso690 | mla | bibtex | wiki | ris | all` (default vrací iso690 ve formátu txt).
 - **format**: `txt | html ` (default vrací pro všechny exp).
 - **lang**: `cs | en | de | sk` (default = cs)
-- **ref**: `true | false` citace s / bez odkazu na digitální dokument (default = false)
+- **ref**: `string` citace s / bez odkazu na digitální dokument (default = false)
 - **debug**: `true | false` citace s api a MODS dokumentu pro kontrolu (default = false)
 
 ## Použití v [uživatelském rozhraní Krameria](https://github.com/ceskaexpedice/kramerius-web-client)
