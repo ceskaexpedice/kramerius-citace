@@ -78,17 +78,18 @@ docker build -t citation-api .
 ```
 případně včetně tagu verze  
 ```
-docker build -t trinera/citation-api:1.1.0 .
+docker build -t ceskaexpedice/citation-api:1.1.0 .
 ```
 případně včetně tagu verze a tagu `latest`
 ```
-docker build -t trinera/citation-api:latest -t trinera/citation-api:1.1.0 .
+docker build -t ceskaexpedice/citation-api:latest -t ceskaexpedice/citation-api:1.1.0 .
 ```
 
 ##### Hostování 
+https://hub.docker.com/r/ceskaexpedice/citation-api/tags
 ```
-docker push trinera/citation-api:1.1.0
-docker push trinera/citation-api:latest
+docker push ceskaexpedice/citation-api:1.1.0
+docker push ceskaexpedice/citation-api:latest
 ```
 
 #### Spuštění Docker image
@@ -99,19 +100,19 @@ docker run -p 3000:3000 citation-api
 ```
 případně konkrétní verzi
 ```
-docker run -p 3000:3000 trinera/citation-api:latest
+docker run -p 3000:3000 ceskaexpedice/citation-api:latest
 ```
 
 ##### Docker Hub
 ```
-docker pull trinera/citation-api:latest
-docker run -p 3000:3000 trinera/citation-api
+docker pull ceskaexpedice/citation-api:latest
+docker run -p 3000:3000 ceskaexpedice/citation-api
 ```
 
 ##### Na nestandardním portu
 Vnější (host) port lze změnit takto:
 ```
-docker run -p 1234:3000 trinera/citation-api
+docker run -p 1234:3000 ceskaexpedice/citation-api
 ```
 
 ## API
