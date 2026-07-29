@@ -134,6 +134,16 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "roles",
+            "in": "query",
+            "required": false,
+            "description": "classify MODS names by roles, infer missing roles and map primary, editor, contributor, imprint and excluded slots to citation formats",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
           }
         ],
         "responses": {

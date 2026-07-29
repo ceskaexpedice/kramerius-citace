@@ -1,4 +1,6 @@
 import { getLocale } from '../locales';
+export { parseModsAuthors } from './modsAuthors';
+export type { ParseModsAuthorsOptions } from './modsAuthors';
 
 function getModsElement(node: any, name: string): any {
     return node?.[`mods:${name}`] ?? node?.[name];
@@ -15,111 +17,6 @@ function getPageExtent(mods: any): any {
     const relatedPart = getModsElement(relatedItem, 'part')?.[0];
     const recordPart = getModsElement(record, 'part')?.[0];
     return getModsElement(relatedPart, 'extent')?.[0] ?? getModsElement(recordPart, 'extent')?.[0];
-}
-
-// Funkce pro zpracování MODS autorů
-export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
-  let locale = getLocale(lang);
-  const authorsList: string[] = [];
-  const authorsListIso: string[] = [];
-
-  const names = getModsElement(getModsRecord(mods), 'name');
-
-  if (!names) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
-
-  let wikiAuthors = '';
-  let risAuthors = '';
-
-  let i = 1;
-
-  names.forEach((name: any) => {
-    // Ověření, že namePart existuje a je polem
-    // vyfiltruji names, ktere neobsahuji nameTitleGroup (uniformni jmeno)
-    if (!name.$?.nameTitleGroup) {
-        const nameType = name.$?.type;
-        const namePart = getModsElement(name, 'namePart');
-        if (!namePart || !Array.isArray(namePart)) return;
-        
-        // index
-
-
-        let family = '';
-        let given = '';
-        let fullName = '';
-    
-        namePart.forEach((part: any) => {
-            if (typeof part === 'string') {
-                // Pokud je part řetězec, bereme ho jako celé jméno
-                fullName = part;
-                family = fullName.split(', ')[0];
-                given = fullName.split(', ')[1];      
-                // console.log('1 family, given', family, ', ', given);
-            } 
-            if (part.$?.type === 'family') {
-                if (part._ && part._.length > 0) {
-                    family = part._;
-                }
-                // console.log('2 family', family, ', ', given);
-            } 
-            if (part.$?.type === 'given') {
-                if (part._ && part._.length > 0) {
-                    given = part._;
-                }
-                // console.log('3 given', family, ', ', given);
-            }
-        });
-
-        if (family && family.length > 0 && given && given.length > 0) {
-            // Pokud máme příjmení a jméno
-            if (nameType !== 'corporate') {
-                authorsListIso.push(`${family.toUpperCase() || ''}, ${given || ''}`.trim());
-            } else {
-                authorsListIso.push(`${family || ''}, ${given || ''}`.trim());
-            }
-            authorsList.push(`${family}, ${given}`.trim());
-            risAuthors += `AU  - ${family}, ${given}\n`;
-            if (i === 1) {
-                wikiAuthors += `${locale['wiki']['surname']} = ${family} | ${locale['wiki']['name']} = ${given} | `;
-            } else {
-                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family} | ${locale['wiki']['name']}${i} = ${given} | `;
-            } 
-        } else if (family.length > 0 || given.length > 0) {
-            // Pokud máme pouze jedno z nich
-            authorsListIso.push(`${family || given}`.trim());
-            authorsList.push(`${family || given}`.trim());
-            risAuthors += `AU  - ${family || given}\n`;
-            if (i === 1) {
-                wikiAuthors += `${locale['wiki']['surname']} = ${family || given} | `;
-            } else {
-                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family || given} | `;
-            }
-        }
-        i = i + 1;
-    }
-  });
-
-  if (authorsList.length === 0) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
-  if (authorsList.length === 1) return {'iso': `${authorsListIso[0]}.`,
-                                        'mla': `${authorsList[0]}.`,
-                                        'bibtex': `${authorsList[0]}`, 
-                                        'wiki': wikiAuthors, 
-                                        'ris': risAuthors};
-  if (authorsList.length === 2) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
-                                        'mla':`${authorsList.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsList[authorsList.length - 1]}.`,
-                                        'bibtex':`${authorsList.slice().join(' and ')}`,
-                                        'wiki': wikiAuthors,
-                                        'ris': risAuthors};;
-  if (authorsList.length === 3 || authorsList.length === 4) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
-                                                                  'mla':`${authorsList[0]}, et al.`,
-                                                                  'bibtex':`${authorsList.slice().join(' and ')}`,
-                                                                  'wiki': wikiAuthors,
-                                                                  'ris': risAuthors};
-  if (authorsList.length > 4) return {'iso': `${authorsListIso[0]} et al.`,
-                                      'mla':`${authorsList[0]}, et al.`,
-                                      'bibtex': `${authorsList[0]} and others`, 
-                                      'wiki': wikiAuthors, 
-                                      'ris': risAuthors};
-  
 }
 
 // ================== PARSE MODS TITLES ==================
@@ -694,4 +591,3 @@ export function parseDoi(mods: any): string {
 
     return doi;
 }
-
