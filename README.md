@@ -82,13 +82,13 @@ docker build -t ceskaexpedice/citation-api:1.1.0 .
 ```
 případně včetně tagu verze a tagu `latest`
 ```
-docker build -t ceskaexpedice/citation-api:latest -t ceskaexpedice/citation-api:1.1.0 .
+docker build -t ceskaexpedice/citation-api:latest -t ceskaexpedice/citation-api:1.3.2 .
 ```
 
 ##### Hostování 
 https://hub.docker.com/r/ceskaexpedice/citation-api/tags
 ```
-docker push ceskaexpedice/citation-api:1.1.0
+docker push ceskaexpedice/citation-api:1.3.2
 docker push ceskaexpedice/citation-api:latest
 ```
 
