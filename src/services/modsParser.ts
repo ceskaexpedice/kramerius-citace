@@ -1,116 +1,22 @@
-import e from 'express';
 import { getLocale } from '../locales';
-import { parse } from 'path';
-import { title } from 'process';
+export { parseModsAuthors } from './modsAuthors';
+export type { ParseModsAuthorsOptions } from './modsAuthors';
 
-// Funkce pro zpracování MODS autorů
-export async function parseModsAuthors(mods: any, lang: any): Promise<any> {
-  let locale = getLocale(lang);
-  const authorsList: string[] = [];
-  const authorsListIso: string[] = [];
+function getModsElement(node: any, name: string): any {
+    return node?.[`mods:${name}`] ?? node?.[name];
+}
 
-  let names;
-  if (mods["mods:modsCollection"]) {
-    names = mods["mods:modsCollection"]["mods:mods"][0]["mods:name"];
-  } else {
-    names = mods["modsCollection"]["mods"][0]["name"];
-  }
+function getModsRecord(mods: any): any {
+    const collection = getModsElement(mods, 'modsCollection');
+    return getModsElement(collection, 'mods')?.[0];
+}
 
-  if (!names) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
-
-  let wikiAuthors = '';
-  let risAuthors = '';
-
-  let i = 1;
-
-  names.forEach((name: any) => {
-    // Ověření, že namePart existuje a je polem
-    // vyfiltruji names, ktere neobsahuji nameTitleGroup (uniformni jmeno)
-    if (!name.$?.nameTitleGroup) {
-        const nameType = name.$?.type;
-        const namePart = name['mods:namePart'];
-        if (!namePart || !Array.isArray(namePart)) return;
-        
-        // index
-
-
-        let family = '';
-        let given = '';
-        let fullName = '';
-    
-        namePart.forEach((part: any) => {
-            if (typeof part === 'string') {
-                // Pokud je part řetězec, bereme ho jako celé jméno
-                fullName = part;
-                family = fullName.split(', ')[0];
-                given = fullName.split(', ')[1];      
-                // console.log('1 family, given', family, ', ', given);
-            } 
-            if (part.$?.type === 'family') {
-                if (part._ && part._.length > 0) {
-                    family = part._;
-                }
-                // console.log('2 family', family, ', ', given);
-            } 
-            if (part.$?.type === 'given') {
-                if (part._ && part._.length > 0) {
-                    given = part._;
-                }
-                // console.log('3 given', family, ', ', given);
-            }
-        });
-
-        if (family && family.length > 0 && given && given.length > 0) {
-            // Pokud máme příjmení a jméno
-            if (nameType !== 'corporate') {
-                authorsListIso.push(`${family.toUpperCase() || ''}, ${given || ''}`.trim());
-            } else {
-                authorsListIso.push(`${family || ''}, ${given || ''}`.trim());
-            }
-            authorsList.push(`${family}, ${given}`.trim());
-            risAuthors += `AU  - ${family}, ${given}\n`;
-            if (i === 1) {
-                wikiAuthors += `${locale['wiki']['surname']} = ${family} | ${locale['wiki']['name']} = ${given} | `;
-            } else {
-                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family} | ${locale['wiki']['name']}${i} = ${given} | `;
-            } 
-        } else if (family.length > 0 || given.length > 0) {
-            // Pokud máme pouze jedno z nich
-            authorsListIso.push(`${family || given}`.trim());
-            authorsList.push(`${family || given}`.trim());
-            risAuthors += `AU  - ${family || given}\n`;
-            if (i === 1) {
-                wikiAuthors += `${locale['wiki']['surname']} = ${family || given} | `;
-            } else {
-                wikiAuthors += `${locale['wiki']['surname']}${i} = ${family || given} | `;
-            }
-        }
-        i = i + 1;
-    }
-  });
-
-  if (authorsList.length === 0) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou žádní autoři, vrátíme prázdný řetězec
-  if (authorsList.length === 1) return {'iso': `${authorsListIso[0]}.`,
-                                        'mla': `${authorsList[0]}.`,
-                                        'bibtex': `${authorsList[0]}`, 
-                                        'wiki': wikiAuthors, 
-                                        'ris': risAuthors};
-  if (authorsList.length === 2) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
-                                        'mla':`${authorsList.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsList[authorsList.length - 1]}.`,
-                                        'bibtex':`${authorsList.slice().join(' and ')}`,
-                                        'wiki': wikiAuthors,
-                                        'ris': risAuthors};;
-  if (authorsList.length === 3 || authorsList.length === 4) return {'iso':`${authorsListIso.slice(0, -1).join(', ')}` + ' ' + locale['and'] + ' ' + `${authorsListIso[authorsList.length - 1]}.`,
-                                                                  'mla':`${authorsList[0]}, et al.`,
-                                                                  'bibtex':`${authorsList.slice().join(' and ')}`,
-                                                                  'wiki': wikiAuthors,
-                                                                  'ris': risAuthors};
-  if (authorsList.length > 4) return {'iso': `${authorsListIso[0]} et al.`,
-                                      'mla':`${authorsList[0]}, et al.`,
-                                      'bibtex': `${authorsList[0]} and others`, 
-                                      'wiki': wikiAuthors, 
-                                      'ris': risAuthors};
-  
+function getPageExtent(mods: any): any {
+    const record = getModsRecord(mods);
+    const relatedItem = getModsElement(record, 'relatedItem')?.[0];
+    const relatedPart = getModsElement(relatedItem, 'part')?.[0];
+    const recordPart = getModsElement(record, 'part')?.[0];
+    return getModsElement(relatedPart, 'extent')?.[0] ?? getModsElement(recordPart, 'extent')?.[0];
 }
 
 // ================== PARSE MODS TITLES ==================
@@ -119,12 +25,7 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
     let locale = getLocale(lang);
     let titlesList: string = '';
     
-    let titleInfo;
-    if (mods["mods:modsCollection"]) {
-        titleInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:titleInfo"];
-    } else {
-        titleInfo = mods["modsCollection"]["mods"][0]["titleInfo"];
-    }
+    const titleInfo = getModsElement(getModsRecord(mods), 'titleInfo');
 
     if (!titleInfo) return ''; // Pokud nejsou žádné tituly, vrátíme prázdný řetězec
 
@@ -137,13 +38,13 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
                 return; // Přeskočíme alternativní tituly
             }
             // Získání hlavního titulu
-            const title = titleObj["mods:title"] || '';
+            const title = getModsElement(titleObj, 'title') || '';
             // Získání podnázvu (volitelné)
-            const subTitle = titleObj["mods:subTitle"] || '';
+            const subTitle = getModsElement(titleObj, 'subTitle') || '';
             // Cislo casti
-            const partNumber = titleObj["mods:partNumber"] || '';
+            const partNumber = getModsElement(titleObj, 'partNumber') || '';
             // Nazev casti
-            const partName = titleObj["mods:partName"] || '';
+            const partName = getModsElement(titleObj, 'partName') || '';
 
 
              // FORMAT MONOGRAFIE: Název: podnázev. Část číslo. Název části.
@@ -227,12 +128,7 @@ export async function parsePeriodicalPublisher(modsData: any,
                                                modsIssue?: any, 
                                                pageNumber?: any): Promise<any> {
     let locale = getLocale(lang);
-    let publicationData;
-    if (modsTitle["mods:modsCollection"]) {
-        publicationData = modsTitle["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
-    } else {
-        publicationData = modsTitle["modsCollection"]["mods"][0]["originInfo"][0];
-    }
+    const publicationData = getModsElement(getModsRecord(modsTitle), 'originInfo')?.[0];
     let publisher = '';
     let placeOfPublication = '';
     let volume = '';
@@ -248,31 +144,27 @@ export async function parsePeriodicalPublisher(modsData: any,
     if (publicationData) {
         // console.log('publicationData', JSON.stringify(publicationData, null, 2));
         // Získání místa vydání (první místo, kde není authority "marccountry")
-        let places;
-        if (publicationData["mods:place"]) {
-            places = publicationData["mods:place"];
-        } else {
-            places = publicationData["place"];
-        }
+        const places = getModsElement(publicationData, 'place');
         if (places) {
             // Najdeme první místo bez authority "marccountry"
-            const relevantPlace = places.find((place: any) => place["mods:placeTerm"][0]?.$?.authority !== "marccountry");
+            const relevantPlace = places.find((place: any) => getModsElement(place, 'placeTerm')?.[0]?.$?.authority !== "marccountry");
             if (relevantPlace) {
-                placeOfPublication = relevantPlace["mods:placeTerm"][0]?._ || '';
+                const placeTerm = getModsElement(relevantPlace, 'placeTerm')?.[0];
+                placeOfPublication = placeTerm?._ ?? placeTerm ?? '';
                 if (placeOfPublication.startsWith('[') && !placeOfPublication.endsWith(']')) {
                     placeOfPublication = placeOfPublication + ']';
                 }
             }
         }
         // Získání vydavatele
-        let publishers = publicationData["mods:publisher"];
+        let publishers = getModsElement(publicationData, 'publisher');
         if (publishers && publishers.length > 0) {
             publisher = publishers[0] || '';
             if (publisher && publisher.startsWith('[') && !publisher.endsWith(']')) {
                 publisher = publisher + ']';
             }
         }
-        let dateIssued = publicationData["mods:dateIssued"] || '';
+        let dateIssued = getModsElement(publicationData, 'dateIssued') || '';
         if (dateIssued.length === 1) {
             if (dateIssued[0]?._) {
                 dateIssuedString = dateIssued[0]?._;
@@ -317,26 +209,15 @@ export async function parsePeriodicalPublisher(modsData: any,
         volumeDate = apiDataVolume['date.str'] || '';
         issue = apiDataIssue['part.number.str'] || '';
         issueDate = apiDataIssue['date.str'] || '';
-        if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0]) {
-            articlePageStart = modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0] || '';
-        } else if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0]) {
-            articlePageStart = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0] || '';
-        }
-        if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0]) {
-            articlePageEnd = modsData["mods:modsCollection"]["mods:mods"][0]["mods:relatedItem"]?.[0]?.["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0] || '';
-        } else if (modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0]) {
-            articlePageEnd = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0] || '';
-        }
+        const extent = getPageExtent(modsData);
+        articlePageStart = getModsElement(extent, 'start')?.[0] || '';
+        articlePageEnd = getModsElement(extent, 'end')?.[0] || '';
     }
     // Získání dat o rozsahu stran kapitoly (internalpart)
     if (apiData['model'] === 'internalpart') {
-        if (modsData["mods:modsCollection"]) {
-            articlePageStart = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:start"]?.[0] || '';
-            articlePageEnd = modsData["mods:modsCollection"]["mods:mods"][0]["mods:part"]?.[0]?.["mods:extent"]?.[0]?.["mods:end"]?.[0] || '';
-        } else {
-            articlePageStart = modsData["modsCollection"]["mods"][0]["part"]?.[0]?.["extent"]?.[0]?.["start"]?.[0] || '';
-            articlePageEnd = modsData["modsCollection"]["mods"][0]["part"]?.[0]?.["extent"]?.[0]?.["end"]?.[0] || '';
-        }
+        const extent = getPageExtent(modsData);
+        articlePageStart = getModsElement(extent, 'start')?.[0] || '';
+        articlePageEnd = getModsElement(extent, 'end')?.[0] || '';
     }
 
     // Vytvoření výsledného řetězce
@@ -476,20 +357,21 @@ export async function parsePeriodicalPublisher(modsData: any,
 
 export async function parseModsPublisher(mods: any, lang: any, pageNumber?: string): Promise<any> {
     let locale = getLocale(lang);
-    if (mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"] && mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0]) {
-        const originInfo = mods["mods:modsCollection"]["mods:mods"][0]["mods:originInfo"][0];
+    const originInfo = getModsElement(getModsRecord(mods), 'originInfo')?.[0];
+    if (originInfo) {
 
         if (!originInfo) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou k dispozici žádné nakladatelské údaje, vrátíme prázdný řetězec.
 
         // Získání místa vydání (první místo, kde není authority "marccountry")
-        const places = originInfo["mods:place"];
+        const places = getModsElement(originInfo, 'place');
         let placeOfPublication = '';
 
         if (places) {
             // Najdeme první místo bez authority "marccountry"
-            const relevantPlace = places.find((place: any) => place["mods:placeTerm"][0]?.$?.authority !== "marccountry");
+            const relevantPlace = places.find((place: any) => getModsElement(place, 'placeTerm')?.[0]?.$?.authority !== "marccountry");
             if (relevantPlace) {
-                placeOfPublication = relevantPlace["mods:placeTerm"][0]?._ || '';
+                const placeTerm = getModsElement(relevantPlace, 'placeTerm')?.[0];
+                placeOfPublication = placeTerm?._ ?? placeTerm ?? '';
                 if (placeOfPublication.startsWith('[') && !placeOfPublication.endsWith(']')) {
                     placeOfPublication = placeOfPublication + ']';
                 }
@@ -497,7 +379,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         }
 
         // Získání vydavatele
-        let publishers = originInfo["mods:publisher"];
+        let publishers = getModsElement(originInfo, 'publisher');
         let publisher = '';
         if (publishers && publishers.length > 0) {
             publisher = publishers[0] || '';
@@ -510,7 +392,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         }
 
         // Získání roku vydání
-        const dateIssued = originInfo["mods:dateIssued"] || '';
+        const dateIssued = getModsElement(originInfo, 'dateIssued') || '';
         let dateIssuedString = '';
         let dateIssuedStringStart = '';
         let dateIssuedStringEnd = '';
@@ -529,14 +411,14 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
                 }
             });
         }
-        const otherDate = originInfo["mods:dateOther"] || '';
+        const otherDate = getModsElement(originInfo, 'dateOther') || '';
         let dateIssuedStringOther = '';
         if (otherDate.length > 0) {
             dateIssuedStringOther = otherDate[0]._?.trim();
         }
 
         // Získání edice (volitelné)
-        const edition = originInfo["mods:edition"] || '';
+        const edition = getModsElement(originInfo, 'edition') || '';
 
         // Vytvoření výsledného řetězce
         let iso = '';
@@ -641,18 +523,18 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
 export async function parseModsCartographics(mods: any, lang: any): Promise<string> {
     let cartographics: any;
     let scaleString: string = '';
-    const subject = mods["mods:modsCollection"]["mods:mods"][0]['mods:subject'];
+    const subject = getModsElement(getModsRecord(mods), 'subject');
 
     if (!subject) return ''; // Pokud nejsou žádné údaje, vrátíme prázdný řetězec
 
     subject.forEach((cartographicObj: any) => {
         // Získání kartografické údaje
-        cartographics = cartographicObj["mods:cartographics"] || '';
+        cartographics = getModsElement(cartographicObj, 'cartographics') || '';
         if (!cartographics) return; // Pokud nejsou žádné kartografické údaje, přeskočíme tento objekt
 
         cartographics.forEach((cartographicObj: any) => {
             // Získání měřítka
-            let scaleArray = cartographicObj["mods:scale"];
+            let scaleArray = getModsElement(cartographicObj, 'scale');
             if (!scaleArray || !Array.isArray(scaleArray)) return; // Ověříme, zda je scale pole
 
             scaleArray.forEach((scale: string) => {
@@ -672,13 +554,13 @@ export async function parseModsCartographics(mods: any, lang: any): Promise<stri
 
 export function parsePhysicalDescription(mods: any, lang: any): string {
     let physicalDescription: string = '';
-    const physicalDescriptions = mods["mods:modsCollection"]["mods:mods"][0]["mods:physicalDescription"];
+    const physicalDescriptions = getModsElement(getModsRecord(mods), 'physicalDescription');
 
     if (!physicalDescriptions) return ''; // Pokud nejsou žádné fyzické popisy, vrátíme prázdný řetězec
 
     physicalDescriptions.forEach((physicalDescriptionObj: any) => {
         // Získání fyzického popisu
-        const extent = physicalDescriptionObj["mods:extent"] || '';
+        const extent = getModsElement(physicalDescriptionObj, 'extent') || '';
         // const form = physicalDescriptionObj["mods:form"] || '';
 
         if (extent) {
@@ -697,7 +579,7 @@ export function parsePhysicalDescription(mods: any, lang: any): string {
 
 export function parseDoi(mods: any): string {
     let doi: string = '';
-    const identifiers = mods["mods:modsCollection"]["mods:mods"][0]["mods:identifier"];
+    const identifiers = getModsElement(getModsRecord(mods), 'identifier');
 
     if (!identifiers) return ''; // Pokud nejsou žádné identifikátory, vrátíme prázdný řetězec
 
@@ -709,6 +591,3 @@ export function parseDoi(mods: any): string {
 
     return doi;
 }
-
-
-

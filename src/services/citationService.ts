@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import { getLocale } from '../locales';
 import { parseStringPromise } from 'xml2js';
-import { parseModsAuthors, parseModsTitles, parseModsPublisher, parseModsCartographics, parsePhysicalDescription, parsePeriodicalTitle, parsePeriodicalPublisher, parseDoi } from './modsParser';
+import { parseModsAuthors, ParseModsAuthorsOptions, parseModsTitles, parseModsPublisher, parseModsCartographics, parsePhysicalDescription, parsePeriodicalTitle, parsePeriodicalPublisher, parseDoi } from './modsParser';
 
 
 // Funkce pro stažení dat přes API
@@ -22,7 +22,7 @@ async function fetchItemData(url: string, uuid: string) {
 
 // Hlavní funkce pro získání metadat a vraceni citace
 export async function getCitation(req: Request, res: Response) {
-  const { uuid, url, lang = 'cs', exp = 'iso690', format = 'txt', ref = '', debug = 'false' } = req.query;
+  const { uuid, url, lang = 'cs', exp = 'iso690', format = 'txt', ref = '', debug = 'false', roles = 'true' } = req.query;
   // console.log('Request params', req.query);
 
   if (!uuid) {
@@ -34,13 +34,15 @@ export async function getCitation(req: Request, res: Response) {
 
   try {
     const data = await fetchItemData(url as string, uuid as string);
-    const responce = await generateCitation(data, url as string, lang as string, ref as string);
+    const authorOptions: ParseModsAuthorsOptions = { filterByRoles: roles === 'true' };
+    const responce = await generateCitation(data, url as string, lang as string, ref as string, authorOptions);
     const citation = responce[0];
     const apiSource = responce[1];
     const modsSource = responce[2];
+    const roleDiagnostics = responce[3];
     if (exp === 'all') {
       if (debug === 'true') {
-        return res.status(200).json({ citation, apiSource, modsSource });
+        return res.status(200).json({ citation, apiSource, modsSource, roleDiagnostics });
       } else {
         return res.status(200).json(citation);
       }
@@ -71,7 +73,7 @@ export async function getCitation(req: Request, res: Response) {
           return res.status(400).json({ error: 'Invalid format specified.' });
       }
       if (debug === 'true') {
-        return res.status(200).json({ formattedCitation, apiSource, modsSource });
+        return res.status(200).json({ formattedCitation, apiSource, modsSource, roleDiagnostics });
       } else {
         return res.status(200).send(formattedCitation);
       }
@@ -83,13 +85,17 @@ export async function getCitation(req: Request, res: Response) {
 }
 
 // Generování citace
-async function generateCitation(data: any, url: string, lang: string, ref: string): Promise<any> {
+async function generateCitation(data: any, url: string, lang: string, ref: string, authorOptions: ParseModsAuthorsOptions): Promise<any> {
   const locale = getLocale(lang);
 
   let citation: { iso690?: string, iso690html?: string, mla?: string, mlahtml?: string, bibtex?: string, wiki?: string, ris?: string } = { iso690: '', iso690html: '', mla: '', mlahtml: '', bibtex: '', wiki: '', ris: '' };
   const apiData = data[0].response?.docs?.[0];
   const modsData = data[1];
   const model = apiData['model'];
+  authorOptions = {
+    ...authorOptions,
+    model: model === 'page' ? apiData['own_parent.model'] : model,
+  };
 
   let authors;
   let authorsTitle;
@@ -102,6 +108,20 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
   let availibility;
   let scale;
   let physicalDesc;
+  const appendedSecondary = new Set<any>();
+  const appendSecondaryResponsibility = (parsedAuthors: any) => {
+    if (!parsedAuthors?.secondary || appendedSecondary.has(parsedAuthors)) return;
+    const secondary = parsedAuthors.secondary;
+    if (secondary.iso) {
+      citation.iso690 += `${secondary.iso} `;
+      citation.iso690html += `${secondary.iso} `;
+    }
+    if (secondary.mla) {
+      citation.mla += `${secondary.mla} `;
+      citation.mlahtml += `${secondary.mla} `;
+    }
+    appendedSecondary.add(parsedAuthors);
+  };
 
   // MONOGRAFICKE DOKUMENTY + TITUL PERIODIKA
   if (model === 'monograph' || 
@@ -121,9 +141,9 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     if (model === 'page') {
       let pageNumber = apiData['page.number'] || '';
       data = await fetchItemData(url, apiData['own_parent.pid']);
-      monographicData = await getMonographicData(data, url, lang, ref, pageNumber);
+      monographicData = await getMonographicData(data, url, lang, ref, authorOptions, pageNumber);
     } else {
-      monographicData = await getMonographicData(data, url, lang, ref);
+      monographicData = await getMonographicData(data, url, lang, ref, authorOptions);
     }
     if (!monographicData) {
       throw new Error('Data not found');
@@ -140,7 +160,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
   // INTERNI CASTI MONOGRAFIE
   if (model === 'internalpart') {
-    let internalPartData = await getInternalPartData(data, url, lang, ref);
+    let internalPartData = await getInternalPartData(data, url, lang, ref, authorOptions);
     
     if (!internalPartData) {
       throw new Error('Data not found');
@@ -163,9 +183,9 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     if (model === 'page') {
       let pageNumber = apiData['page.number'] || '';
       data = await fetchItemData(url, apiData['own_parent.pid']);
-      volumeData = await getPeriodicalVolumeData(data, url, lang, ref, pageNumber);
+      volumeData = await getPeriodicalVolumeData(data, url, lang, ref, authorOptions, pageNumber);
     } else {
-      volumeData = await getPeriodicalVolumeData(data, url, lang, ref);
+      volumeData = await getPeriodicalVolumeData(data, url, lang, ref, authorOptions);
     }
     if (!volumeData) {
       throw new Error('Data not found');
@@ -186,9 +206,9 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     if (model === 'page'){
       let pageNumber = apiData['page.number'] || '';
       data = await fetchItemData(url, apiData['own_parent.pid']);
-      issueData = await getPeriodicalIssueData(data, url, lang, ref, pageNumber);
+      issueData = await getPeriodicalIssueData(data, url, lang, ref, authorOptions, pageNumber);
     } else {
-      issueData = await getPeriodicalIssueData(data, url, lang, ref);
+      issueData = await getPeriodicalIssueData(data, url, lang, ref, authorOptions);
     }
     if (!issueData) {
       throw new Error('Data not found');
@@ -201,7 +221,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
   // Periodical ARTICLE
   if (model === 'article') {
-    let articleData = await getPeriodicalArticleData(data, url, lang, ref);
+    let articleData = await getPeriodicalArticleData(data, url, lang, ref, authorOptions);
     authors = articleData.authors;
     title = articleData.title;
     publication = articleData.publication;
@@ -219,7 +239,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
   // ZVUKOVE NAHRAVKY
   // soundunit
   if (model === 'soundunit' || model === 'track') {
-    let soundunitData = await getPeriodicalVolumeData(data, url, lang, ref);
+    let soundunitData = await getPeriodicalVolumeData(data, url, lang, ref, authorOptions);
     authors = soundunitData.authorsTitle;
     title = soundunitData.title;
     publication = soundunitData.publication;
@@ -229,7 +249,10 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
   // =========   SESTAVENI CITACE ==========
   if (model === 'monograph' || model === 'convolute' || model === 'monographunit' || (model === 'page' && (apiData['own_parent.model'] === 'monograph' || apiData['own_parent.model'] === 'convolute' || apiData['own_parent.model'] === 'monographunit'))) {
-    citation.bibtex = `@book{${apiData['pid']}, `;
+    const editorOnly = authorOptions.filterByRoles
+      && authors?.entries?.some((entry: any) => entry.slot === 'editor')
+      && !authors?.entries?.some((entry: any) => entry.slot === 'primary');
+    citation.bibtex = `@${editorOnly ? 'collection' : 'book'}{${apiData['pid']}, `;
     citation.wiki = `{{ ${locale['wiki']['monograph']} | `;
     citation.ris = `TY  - BOOK\n`;
   } else if (model === 'map' || (model === 'page' && apiData['own_parent.model'] === 'map')) {
@@ -262,15 +285,25 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.ris = `TY  - GEN\n`;
   }
 
+  if (authorOptions.filterByRoles) {
+    citation.wiki += `via = Kramerius | id = ${apiData['pid']} | `;
+  }
+
   // AUTHORS
-  if (authors && authors.iso?.length > 0 && model !== 'periodical') {
-    citation.iso690 += `${removeDoubleDot(authors.iso)} `;
-    citation.iso690html += `${removeDoubleDot(authors.iso)} `;
-    citation.mla += `${removeDoubleDot(authors.mla)} `;
-    citation.mlahtml += `${removeDoubleDot(authors.mla)} `;
-    citation.bibtex += `author = {${authors.bibtex}}, `;
-    citation.wiki += `${authors.wiki}`;
-    citation.ris += `${authors.ris}`;
+  if (authors && model !== 'periodical') {
+    if (authors.iso?.length > 0) {
+      citation.iso690 += `${removeDoubleDot(authors.iso)} `;
+      citation.iso690html += `${removeDoubleDot(authors.iso)} `;
+      citation.mla += `${removeDoubleDot(authors.mla)} `;
+      citation.mlahtml += `${removeDoubleDot(authors.mla)} `;
+    }
+    if (authors.bibtexFields !== undefined) {
+      citation.bibtex += authors.bibtexFields;
+    } else if (authors.bibtex?.length > 0) {
+      citation.bibtex += `author = {${authors.bibtex}}, `;
+    }
+    citation.wiki += `${authors.wiki || ''}`;
+    citation.ris += `${authors.ris || ''}`;
   }
 
   // MONOGRAPH TITLE
@@ -282,6 +315,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.bibtex += `title = {${removeTrailingDot(titleMono.txt)}}, `;
     citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(titleMono.txt)} | `;
     citation.ris += `TI  - ${removeTrailingDot(titleMono.txt)}\n`;
+    appendSecondaryResponsibility(authors);
   }
 
   // PERIODICAL TITLE
@@ -293,6 +327,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
     citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
     citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
+    appendSecondaryResponsibility(authors);
   }
   // periodical issue
   if (title && title.length === 2) {
@@ -309,6 +344,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
     citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
     citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
+    appendSecondaryResponsibility(authors);
     
   }
   // article
@@ -322,6 +358,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.bibtex += `title = {${removeTrailingDot(title[2])}}, `;
       citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[2])} |`;
       citation.ris += `T1  - ${removeTrailingDot(title[2])}\n`;
+      appendSecondaryResponsibility(authors);
     }
     // nazev periodika
     if (title[0] && title[0].length > 0) {
@@ -352,6 +389,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.bibtex += `title = {${removeTrailingDot(title[2])}}, `;
       citation.wiki += `${locale['wiki']['chapter']} = ${removeTrailingDot(title[2])} | `;
       citation.ris += `T1  - ${removeTrailingDot(title[2])}\n`;
+      appendSecondaryResponsibility(authors);
     }
     // In
     if (title[3] && title[3].length > 0) {
@@ -359,14 +397,20 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.iso690html += `${title[3]} `;
     }
     // autor monografie
-    if (authorsTitle && authorsTitle.iso?.length > 0) {
-      citation.iso690 += `${removeDoubleDot(authorsTitle.iso)} `;
-      citation.iso690html += `${removeDoubleDot(authorsTitle.iso)} `;
-      citation.mla += `${removeDoubleDot(authorsTitle.mla)} `;
-      citation.mlahtml += `${removeDoubleDot(authorsTitle.mla)} `;
-      citation.bibtex += `author = {${authorsTitle.bibtex}}, `;
-      citation.wiki += `${authorsTitle.wiki}`;
-      citation.ris += `${authorsTitle.ris}`;
+    if (authorsTitle) {
+      if (authorsTitle.iso?.length > 0) {
+        citation.iso690 += `${removeDoubleDot(authorsTitle.iso)} `;
+        citation.iso690html += `${removeDoubleDot(authorsTitle.iso)} `;
+        citation.mla += `${removeDoubleDot(authorsTitle.mla)} `;
+        citation.mlahtml += `${removeDoubleDot(authorsTitle.mla)} `;
+      }
+      if (authorsTitle.bibtexFields !== undefined) {
+        citation.bibtex += authorsTitle.bibtexFields.replace(/^author = /, 'bookauthor = ');
+      } else if (authorsTitle.bibtex?.length > 0) {
+        citation.bibtex += `author = {${authorsTitle.bibtex}}, `;
+      }
+      citation.wiki += `${authorsTitle.wiki || ''}`;
+      citation.ris += `${authorsTitle.ris || ''}`;
     }
     // nazev monografie
     if (title[0] && title[0].length > 0) {
@@ -377,8 +421,12 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.bibtex += `booktitle = {${removeTrailingDot(title[0])}}, `;
       citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
       citation.ris += `T2  - ${removeTrailingDot(title[0])}\n`;
+      appendSecondaryResponsibility(authorsTitle);
     }
   }
+
+  appendSecondaryResponsibility(authors);
+  appendSecondaryResponsibility(authorsTitle);
 
   // MERITKO
   if (model === 'map' && scale) {
@@ -395,6 +443,22 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.bibtex += `${publication.bibtex} `;
     citation.wiki += `${publication.wiki}`;
     citation.ris += `${publication.ris}`;
+  }
+
+  const imprintPublishers = [authors, authorsTitle]
+    .filter(Boolean)
+    .flatMap((parsedAuthors: any) => parsedAuthors.imprintPublishers || []);
+  if (imprintPublishers.length > 0) {
+    const uniquePublishers = [...new Set(imprintPublishers)] as string[];
+    if (!citation.bibtex.includes('publisher = {')) {
+      citation.bibtex += `publisher = {${uniquePublishers.join(' and ')}}, `;
+    }
+    if (!citation.ris.includes('PB  - ')) {
+      citation.ris += uniquePublishers.map((publisher) => `PB  - ${publisher}\n`).join('');
+    }
+    if (!citation.wiki.includes(`${locale['wiki']['publisher']} =`)) {
+      citation.wiki += `${locale['wiki']['publisher']} = ${uniquePublishers.join('; ')} | `;
+    }
   }
 
   // PHYSICAL DESCRIPTION
@@ -467,17 +531,24 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
   citation.ris += `ER  - \n\n`;
   // https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
 
-  return [citation, apiData, modsData];
+  const roleDiagnostics = authorOptions.filterByRoles
+    ? {
+        current: authors?.diagnostics,
+        relatedTitle: authorsTitle?.diagnostics,
+      }
+    : undefined;
+
+  return [citation, apiData, modsData, roleDiagnostics];
 }
 
 
 // =========   FUNKCE PRO ZISKANI DAT O DOKUMENTU ==========
 
 // Získání dat o monografickém dokumentu
-async function getMonographicData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
+async function getMonographicData(data: any, url: string, lang: string, ref: string, authorOptions: ParseModsAuthorsOptions, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
-  let authors = await parseModsAuthors(modsData, lang);
+  let authors = await parseModsAuthors(modsData, lang, authorOptions);
   let title = await parseModsTitles(modsData, lang);
   let publication = await parseModsPublisher(modsData, lang, pageNumber);
   let scale = await parseModsCartographics(modsData, lang);
@@ -496,7 +567,7 @@ async function getMonographicData(data: any, url: string, lang: string, ref: str
 }
 
 // Získání dat o interní části monografického dokumentu
-async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
+async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref: string, authorOptions: ParseModsAuthorsOptions, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
 
@@ -506,8 +577,8 @@ async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref
   let modsTitle = titleRequest[1];
 
   // Vygenerování částí citace   
-  let authors = await parseModsAuthors(modsData, lang);
-  let authorsTitle = await parseModsAuthors(modsTitle, lang);
+  let authors = await parseModsAuthors(modsData, lang, authorOptions);
+  let authorsTitle = await parseModsAuthors(modsTitle, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
   let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, null, pageNumber);
   let issn = '';
@@ -519,7 +590,7 @@ async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref
   return { 'authors': authors, 'authorsTitle': authorsTitle, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
 }
 
-async function getPeriodicalIssueData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
+async function getPeriodicalIssueData(data: any, url: string, lang: string, ref: string, authorOptions: ParseModsAuthorsOptions, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
   
@@ -534,7 +605,7 @@ async function getPeriodicalIssueData(data: any, url: string, lang: string, ref:
   let modsVolume = volumeRequest[1];
 
   // Vygenerování částí citace
-  let authors = await parseModsAuthors(modsData, lang);
+  let authors = await parseModsAuthors(modsData, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
   let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, null, null, pageNumber);
   let issn = '';
@@ -546,7 +617,7 @@ async function getPeriodicalIssueData(data: any, url: string, lang: string, ref:
   return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility };
 }
 
-async function getPeriodicalArticleData(data: any, url: string, lang: string, ref: string) {
+async function getPeriodicalArticleData(data: any, url: string, lang: string, ref: string, authorOptions: ParseModsAuthorsOptions) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
 
@@ -566,7 +637,7 @@ async function getPeriodicalArticleData(data: any, url: string, lang: string, re
   let modsVolume = volumeRequest[1];
 
   // Vygenerování částí citace
-  let authors = await parseModsAuthors(modsData, lang);
+  let authors = await parseModsAuthors(modsData, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
   let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, apiDataIssue, modsIssue);
   let doi = await parseDoi(modsData);
@@ -579,7 +650,7 @@ async function getPeriodicalArticleData(data: any, url: string, lang: string, re
   return { 'authors': authors, 'title': title, 'publication': publication, 'issn': issn, 'availibility': availibility, 'doi': doi };
 }
 
-async function getInternalPartData(data: any, url: string, lang: string, ref: string, pageNumber?: string) {
+async function getInternalPartData(data: any, url: string, lang: string, ref: string, authorOptions: ParseModsAuthorsOptions, pageNumber?: string) {
   const apiData = data[0].response.docs[0];
   const modsData = data[1];
 
@@ -589,8 +660,8 @@ async function getInternalPartData(data: any, url: string, lang: string, ref: st
   let modsTitle = titleRequest[1];
 
   // Vygenerování částí citace
-  let authorsChapter = await parseModsAuthors(modsData, lang);
-  let authorsTitle = await parseModsAuthors(modsTitle, lang);
+  let authorsChapter = await parseModsAuthors(modsData, lang, authorOptions);
+  let authorsTitle = await parseModsAuthors(modsTitle, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
   let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, pageNumber);
   let isbn = '';
@@ -625,8 +696,3 @@ function removeTrailingComma(input: string): string {
   }
   return input; // Return the original string if no trailing comma
 }
-
-
-
-
-
