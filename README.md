@@ -137,27 +137,27 @@ změnily, zacommituje právě tyhle dva soubory.
 
 ### Build
 ```shell
-docker build -t citation-api .
+docker build -t trinera/citation-api .
 ```
 
 případně včetně tagu verze
 ```shell
-docker build -t ceskaexpedice/citation-api:1.3.3 .
+docker build -t trinera/citation-api:1.3.3 .
 ```
 
 případně včetně tagu verze a tagu `latest`
 ```shell
-docker build -t ceskaexpedice/citation-api:1.3.3 -t ceskaexpedice/citation-api:latest .
+docker build -t trinera/citation-api:1.3.3 -t trinera/citation-api:latest .
 ```
 
 ### Push na Docker Hub
 
-Jen pokud máš právo zápisu do repozitáře [ceskaexpedice/citation-api](https://hub.docker.com/r/ceskaexpedice/citation-api/tags)
+Jen pokud máš právo zápisu do repozitáře [trinera/citation-api](https://hub.docker.com/r/trinera/citation-api/tags)
 na Docker Hubu. Pro spuštění lokálně sestaveného image to potřeba není.
 
 ```shell
-docker push ceskaexpedice/citation-api:1.3.3
-docker push ceskaexpedice/citation-api:latest
+docker push trinera/citation-api:1.3.3
+docker push trinera/citation-api:latest
 ```
 
 ### Build & push na Docker Hub (multiplatformní)
@@ -165,14 +165,14 @@ docker push ceskaexpedice/citation-api:latest
 Sestaví image pro `linux/amd64` i `linux/arm64` a rovnou ho pushne na Docker Hub.
 
 ```shell
-docker buildx build --platform linux/amd64,linux/arm64 -t ceskaexpedice/citation-api:1.3.3 --push .
+docker buildx build --platform linux/amd64,linux/arm64 -t trinera/citation-api:1.3.3 --push .
 ```
 
 případně včetně tagu `latest`
 ```shell
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t ceskaexpedice/citation-api:1.3.3 \
-  -t ceskaexpedice/citation-api:latest \
+  -t trinera/citation-api:1.3.3 \
+  -t trinera/citation-api:latest \
   --push .
 ```
 
@@ -189,12 +189,12 @@ docker buildx create --name multiplatform --use --bootstrap
 Spuštění lokálně sestaveného image.
 
 ```shell
-docker run -p 3000:3000 citation-api
+docker run -p 3000:3000 trinera/citation-api
 ```
 
 případně konkrétní verze
 ```shell
-docker run -p 3000:3000 ceskaexpedice/citation-api:1.3.3
+docker run -p 3000:3000 trinera/citation-api:1.3.3
 ```
 
 #### Image stažený z Docker Hubu
@@ -202,15 +202,15 @@ docker run -p 3000:3000 ceskaexpedice/citation-api:1.3.3
 Spuštění image, který někdo sestavil a pushnul na Docker Hub.
 
 ```shell
-docker pull ceskaexpedice/citation-api:latest
-docker run -p 3000:3000 ceskaexpedice/citation-api:latest
+docker pull trinera/citation-api:latest
+docker run -p 3000:3000 trinera/citation-api:latest
 ```
 
 #### Na nestandardním portu
 
 Vnější (host) port lze změnit takto:
 ```shell
-docker run -p 1234:3000 ceskaexpedice/citation-api:latest
+docker run -p 1234:3000 trinera/citation-api:latest
 ```
 
 Aplikace pak běží na

@@ -4,7 +4,7 @@
 // set by `npm version` in the bump-version-* npm scripts) and propagates it to
 // the other places that must stay in sync for an application release:
 //   - src/index.ts   (config.version - both the prod and the commented-out dev line)
-//   - README.md      (ceskaexpedice/citation-api:<version> in the Docker examples)
+//   - README.md      (trinera/citation-api:<version> in the Docker examples)
 //
 // openapi.json / openapi-src/__api.yaml are NOT touched: their info.version is
 // the placeholder SHOULD_BE_INJECTED and is overwritten at runtime from
@@ -57,10 +57,10 @@ syncFile('src/index.ts', /^(\s*version\s*:\s*')[^']*(')/m, version, 'config.vers
 // src/index.ts -> dev (commented out):   //version : '1.3.3',
 syncFile('src/index.ts', /^(\s*\/\/version\s*:\s*')[^']*(')/m, version, 'config.version (dev, commented out)');
 
-// README.md -> ceskaexpedice/citation-api:1.3.3  (the :latest tag is left alone)
+// README.md -> trinera/citation-api:1.3.3  (the :latest tag is left alone)
 syncAllOccurrences(
     'README.md',
-    /(ceskaexpedice\/citation-api:)\d+\.\d+\.\d+/g,
+    /(trinera\/citation-api:)\d+\.\d+\.\d+/g,
     (_m, prefix) => `${prefix}${version}`,
     'Docker image tag'
 );
