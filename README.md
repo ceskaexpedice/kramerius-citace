@@ -100,52 +100,89 @@ npm run dev
 npm run start
 ```
 
-### Docker
+## Docker Build & Run
 
-#### Distribuce Docker image
-
-##### Build
-```
+### Build
+```shell
 docker build -t citation-api .
 ```
-případně včetně tagu verze  
-```
-docker build -t ceskaexpedice/citation-api:1.1.0 .
-```
-případně včetně tagu verze a tagu `latest`
-```
-docker build -t ceskaexpedice/citation-api:latest -t ceskaexpedice/citation-api:1.3.2 .
+
+případně včetně tagu verze
+```shell
+docker build -t ceskaexpedice/citation-api:1.3.3 .
 ```
 
-##### Hostování 
-https://hub.docker.com/r/ceskaexpedice/citation-api/tags
+případně včetně tagu verze a tagu `latest`
+```shell
+docker build -t ceskaexpedice/citation-api:1.3.3 -t ceskaexpedice/citation-api:latest .
 ```
-docker push ceskaexpedice/citation-api:1.3.2
+
+### Push na Docker Hub
+
+Jen pokud máš právo zápisu do repozitáře [ceskaexpedice/citation-api](https://hub.docker.com/r/ceskaexpedice/citation-api/tags)
+na Docker Hubu. Pro spuštění lokálně sestaveného image to potřeba není.
+
+```shell
+docker push ceskaexpedice/citation-api:1.3.3
 docker push ceskaexpedice/citation-api:latest
 ```
 
-#### Spuštění Docker image
+### Build & push na Docker Hub (multiplatformní)
 
-##### Lokální image
+Sestaví image pro `linux/amd64` i `linux/arm64` a rovnou ho pushne na Docker Hub.
+
+```shell
+docker buildx build --platform linux/amd64,linux/arm64 -t ceskaexpedice/citation-api:1.3.3 --push .
 ```
+
+případně včetně tagu `latest`
+```shell
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t ceskaexpedice/citation-api:1.3.3 \
+  -t ceskaexpedice/citation-api:latest \
+  --push .
+```
+
+Multiplatformní build vyžaduje buildx builder s podporou více platforem. Pokud
+ještě žádný nemáš, vytvoř ho jednorázově takto:
+```shell
+docker buildx create --name multiplatform --use --bootstrap
+```
+
+### Spuštění Docker image
+
+#### Lokální image
+
+Spuštění lokálně sestaveného image.
+
+```shell
 docker run -p 3000:3000 citation-api
 ```
-případně konkrétní verzi
+
+případně konkrétní verze
+```shell
+docker run -p 3000:3000 ceskaexpedice/citation-api:1.3.3
 ```
+
+#### Image stažený z Docker Hubu
+
+Spuštění image, který někdo sestavil a pushnul na Docker Hub.
+
+```shell
+docker pull ceskaexpedice/citation-api:latest
 docker run -p 3000:3000 ceskaexpedice/citation-api:latest
 ```
 
-##### Docker Hub
-```
-docker pull ceskaexpedice/citation-api:latest
-docker run -p 3000:3000 ceskaexpedice/citation-api
+#### Na nestandardním portu
+
+Vnější (host) port lze změnit takto:
+```shell
+docker run -p 1234:3000 ceskaexpedice/citation-api:latest
 ```
 
-##### Na nestandardním portu
-Vnější (host) port lze změnit takto:
-```
-docker run -p 1234:3000 ceskaexpedice/citation-api
-```
+Aplikace pak běží na
+
+http://localhost:1234
 
 ## API
 Webová dokumentace je dostupná na nasezené aplikaci, na cestě `/api-docs`.
