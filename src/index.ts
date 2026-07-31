@@ -17,12 +17,12 @@ const config = {
   //TODO: use actual config, possibly from environment variables
 
   //dev
-  //version : '1.3.3',
+  //version : '1.3.4',
   //production_build: false,
   //documentation_api_base_url: 'http://localhost:3000/'
 
   //prod
-  version : '1.3.3',
+  version : '1.3.4',
   production_build: true,
   documentation_api_base_url: 'https://citace.ceskadigitalniknihovna.cz/'
 }
