@@ -6,7 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "sync-version": "node scripts/sync-version.js",
+    "bump-version-patch": "node scripts/bump-version.js patch",
+    "bump-version-minor": "node scripts/bump-version.js minor",
+    "bump-version-major": "node scripts/bump-version.js major",
+    "audit-fix": "node scripts/audit-fix.js"
   },
   "keywords": [],
   "author": "",

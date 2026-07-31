@@ -100,6 +100,39 @@ npm run dev
 npm run start
 ```
 
+### Zvýšení verze
+
+Verze aplikace je vedená v `package.json` (jediný zdroj pravdy). Zvýšení verze
+a jeho zacommitování se dělá jedním příkazem:
+
+```shell
+npm run bump-version-patch   # 1.3.3 -> 1.3.4
+npm run bump-version-minor   # 1.3.3 -> 1.4.0
+npm run bump-version-major   # 1.3.3 -> 2.0.0
+```
+
+Skript odmítne běžet, pokud jsou v pracovním stromu necommitnuté změny, aby se
+do commitu s verzí nezamíchalo něco nesouvisejícího. Novou verzi rozkopíruje do
+`src/index.ts` (`config.version`) a do docker tagů v tomto README a výsledek
+zacommituje. Samotné rozkopírování bez bumpu a commitu lze spustit i zvlášť:
+
+```shell
+npm run sync-version
+```
+
+Verze v `openapi.json` se nesynchronizuje – do dokumentace se vkládá až za běhu
+z `config.version` (viz `initSwagger` v `src/index.ts`).
+
+### Aktualizace zranitelných závislostí
+
+```shell
+npm run audit-fix
+```
+
+Spustí `npm install` a `npm audit fix` (bez `--force`, takže se aplikují jen
+nerozbíjející aktualizace) a pokud se `package.json` / `package-lock.json`
+změnily, zacommituje právě tyhle dva soubory.
+
 ## Docker Build & Run
 
 ### Build
