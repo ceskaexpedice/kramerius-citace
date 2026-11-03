@@ -303,12 +303,12 @@ docker build -t trinera/citation-api .
 
 případně včetně tagu verze
 ```shell
-docker build -t trinera/citation-api:1.3.7 .
+docker build -t trinera/citation-api:1.3.8 .
 ```
 
 případně včetně tagu verze a tagu `latest`
 ```shell
-docker build -t trinera/citation-api:1.3.7 -t trinera/citation-api:latest .
+docker build -t trinera/citation-api:1.3.8 -t trinera/citation-api:latest .
 ```
 
 ### Push na Docker Hub
@@ -317,7 +317,7 @@ Jen pokud máš právo zápisu do repozitáře [trinera/citation-api](https://hu
 na Docker Hubu. Pro spuštění lokálně sestaveného image to potřeba není.
 
 ```shell
-docker push trinera/citation-api:1.3.7
+docker push trinera/citation-api:1.3.8
 docker push trinera/citation-api:latest
 ```
 
@@ -326,13 +326,13 @@ docker push trinera/citation-api:latest
 Sestaví image pro `linux/amd64` i `linux/arm64` a rovnou ho pushne na Docker Hub.
 
 ```shell
-docker buildx build --platform linux/amd64,linux/arm64 -t trinera/citation-api:1.3.7 --push .
+docker buildx build --platform linux/amd64,linux/arm64 -t trinera/citation-api:1.3.8 --push .
 ```
 
 případně včetně tagu `latest`
 ```shell
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t trinera/citation-api:1.3.7 \
+  -t trinera/citation-api:1.3.8 \
   -t trinera/citation-api:latest \
   --push .
 ```
@@ -355,7 +355,7 @@ docker run -p 3000:3000 trinera/citation-api
 
 případně konkrétní verze
 ```shell
-docker run -p 3000:3000 trinera/citation-api:1.3.7
+docker run -p 3000:3000 trinera/citation-api:1.3.8
 ```
 
 #### Image stažený z Docker Hubu
