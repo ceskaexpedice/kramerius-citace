@@ -302,7 +302,7 @@ export async function parsePeriodicalPublisher(modsData: any,
     if (issueDate && issueDate.length > 0 && issueDate !== issue) {
         mla += `${issueDate}`;
         bibtex += `date = {${issueDate}}, `;
-        wiki += `${locale['wiki']['day']} = ${issueDate} | `;
+        wiki += `${locale['wiki']['date']} = ${issueDate} | `;
         if (issueDate.length === 4) {
             ris += `Y1  - ${issueDate}\n`;
         } else {

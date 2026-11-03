@@ -1,5 +1,9 @@
 # Citation API
 
+Služba, která z metadat dokumentu v Krameriu (Solr index + MODS) sestaví
+bibliografickou citaci. Vstupem je UUID objektu a adresa API konkrétního
+Krameria, výstupem citace ve formátu ISO 690, MLA, BibTeX, Wikipedie nebo RIS.
+
 ## Norma
 
 Zdroj normy ISO690:2022: [Výklad ISO690:2022 PDF](https://www.citace.com/Vyklad-CSN-ISO-690-2022.pdf)
@@ -22,21 +26,70 @@ RIS [RIS na Refman](https://web.archive.org/web/20100726184137/http://www.refman
 
 GitHub: [https://github.com/ceskaexpedice/kramerius-citace](https://github.com/ceskaexpedice/kramerius-citace)
 
+Produkční nasazení: [https://citace.ceskadigitalniknihovna.cz](https://citace.ceskadigitalniknihovna.cz)
+
 ## Popis API
+
+Aplikace poslouchá na portu `3000` (pevně v `src/index.ts`) a nabízí tyto cesty:
+
+| Cesta | Popis |
+| --- | --- |
+| `/` | Úvodní stránka s verzí a odkazy |
+| `/api/v1` | Sestavení citace (viz níže) |
+| `/api-docs` | Interaktivní OpenAPI dokumentace (Swagger UI) |
+| `/test` | Vývojářský výpis zpracování ukázkových MODS souborů z `src/test/testMods` |
 
 ### `/api/v1`
 
-Např. `http://localhost:3000/api/v1?uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&exp=iso690&format=html&lang=cs`
+Např. `http://localhost:3000/api/v1?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&exp=iso690&format=html&lang=cs`
 
-#### Parametry:
+#### Parametry
 
-- **uuid**: UUID objektu. Povinny parametr.
-- **exp**: `iso690 | mla | bibtex | wiki | ris | all` (default vrací iso690 ve formátu txt).
-- **format**: `txt | html ` (default vrací pro všechny exp).
-- **lang**: `cs | en | de | sk` (default = cs)
-- **ref**: `string` citace s / bez odkazu na digitální dokument (default = false)
-- **debug**: `true | false` citace s api a MODS dokumentu pro kontrolu (default = false)
-- **roles**: `true | false` zohlednění rolí u jmen v MODS (default = true)
+- **url**: Adresa API Krameria, ve kterém se objekt nachází, např.
+  `https://api.kramerius.mzk.cz` nebo `https://api.ceskadigitalniknihovna.cz`.
+  Služba na ni volá `/search/api/client/v7.0/search` a
+  `/search/api/client/v7.0/items/{uuid}/metadata/mods`. Povinný parametr.
+- **uuid**: UUID objektu včetně prefixu, např. `uuid:869e4730-…`. Povinný parametr.
+- **exp**: `iso690 | mla | bibtex | wiki | ris | all` (default `iso690`).
+  `all` vrátí JSON se všemi formáty najednou (`iso690`, `iso690html`, `mla`,
+  `mlahtml`, `bibtex`, `wiki`, `ris`).
+- **format**: `txt | html` (default `txt`). Ovlivňuje jen `iso690` a `mla`,
+  u kterých existuje HTML varianta s kurzívou a odkazem; `bibtex`, `wiki` a
+  `ris` jsou vždy prostý text. Hodnota určuje i hlavičku `Content-Type`.
+- **lang**: `cs | en | de | sk` (default `cs`). Jazyk zkratek a spojek
+  v citaci (`s.`, `roč.`, `č.`, `a` …). Názvy parametrů wiki šablony jsou vždy
+  české, protože cílem je česká Wikipedie.
+- **ref**: URL digitálního dokumentu, které se připojí na konec citace
+  („Dostupné z: …“, `url = {…}`, `url = …`, `L1  - …`). Když chybí nebo je
+  prázdný, citace odkaz neobsahuje.
+- **debug**: `true | false` (default `false`). Odpověď je JSON a kromě citace
+  obsahuje i zdrojová data z API (`apiSource`), MODS (`modsSource`) a při
+  `roles=true` diagnostiku rolí (`roleDiagnostics`).
+- **roles**: `true | false` (default `true`). Zohlednění rolí u jmen v MODS,
+  viz níže.
+
+#### Chybové odpovědi
+
+| Kód | Příčina |
+| --- | --- |
+| `400` | Neznámá hodnota `exp` nebo `format` |
+| `422` | Chybí `uuid` nebo `url` |
+| `500` | Objekt se nepodařilo načíst z Krameria nebo selhalo zpracování |
+
+#### Podporované modely
+
+Citace se sestavuje podle hodnoty `model` v indexu Krameria. Stránka (`page`)
+se cituje podle svého rodiče a doplní se číslo stránky.
+
+| Modely | Způsob citace | Wiki šablona |
+| --- | --- | --- |
+| `monograph`, `monographunit`, `convolute`, `map`, `graphic`, `sheetmusic`, `archive`, `manuscript`, `soundrecording`, `collection` | monografie | `Citace monografie` |
+| `internalpart` | kapitola v monografii | `Citace monografie` |
+| `periodical` | titul periodika | `Citace periodika` |
+| `periodicalvolume`, `periodicalitem`, `supplement` | ročník / číslo / příloha periodika | `Citace periodika` |
+| `article` | článek v periodiku | `Citace periodika` |
+| `soundunit`, `track` | zvuková jednotka / stopa (jako ročník periodika) | `Citace periodika` |
+| ostatní | obecný záznam (BibTeX `@misc`, RIS `GEN`) | `Citace monografie` |
 
 #### Poznámka k `roles`
 
@@ -69,6 +122,79 @@ Při kombinaci `roles=true&debug=true` odpověď obsahuje také
 `roleDiagnostics` s použitými sloty, jistotou, příznakem `needsReview` a
 auditním seznamem deduplikovaných jmen.
 
+## Výstupní formáty
+
+Ukázky pro monografii `uuid:869e4730-6c8b-11e2-8ed6-005056827e52` z MZK
+s `ref=https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52`:
+
+```
+iso690:  ČAPEK, Karel a ČAPEK, Josef. Devatero pohádek, dvě navíc. 1. vyd. Praha: SNDK, 1959. Dostupné z: https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
+mla:     Čapek, Karel, and Josef Čapek. Devatero pohádek, dvě navíc. SNDK, 1959. Digitální knihovna, https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
+bibtex:  @book{uuid:869e4730-6c8b-11e2-8ed6-005056827e52, author = {{Čapek}, Karel and {Čapek}, Josef}, title = {Devatero pohádek, dvě navíc}, edition = {1. vyd.}, address = {Praha}, publisher = {SNDK}, year = {1959}, url = {https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52}}
+wiki:    {{ Citace monografie | příjmení = Čapek | jméno = Karel | příjmení2 = Čapek | jméno2 = Josef | titul = Devatero pohádek, dvě navíc | vydání = 1. vyd. | místo = Praha | vydavatel = SNDK | rok vydání = 1959 | url = https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52 }}
+ris:     TY  - BOOK
+         AU  - Čapek, Karel
+         AU  - Čapek, Josef
+         TI  - Devatero pohádek, dvě navíc
+         ET  - 1. vyd.
+         PP  - Praha
+         PB  - SNDK
+         PY  - 1959
+         L1  - https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
+         ER  -
+```
+
+### Wikipedie (`exp=wiki`)
+
+Výstup je volání šablony české Wikipedie: `{{ Citace monografie | … }}` pro
+monografické dokumenty a `{{ Citace periodika | … }}` pro periodika (viz tabulka
+modelů výše). Názvy parametrů jsou vždy české bez ohledu na `lang`.
+
+Mapování údajů na parametry šablony:
+
+| Údaj | `Citace monografie` | `Citace periodika` |
+| --- | --- | --- |
+| autoři | `příjmení`, `jméno`, `příjmení2`, `jméno2`, … (korporace `autor`, `autor2`, …) | stejně |
+| editoři, překladatelé | `editor-last`/`editor-first`, `translator-last`/`translator-first` | stejně |
+| název dokumentu | `titul` | – |
+| název periodika | – | `periodikum` |
+| název článku | – | `titul` |
+| vydání | `vydání` | – |
+| místo, vydavatel | `místo`, `vydavatel` | `místo`, `vydavatel` |
+| rok vydání (i rozmezí let) | `rok vydání` | `rok vydání` (titul, ročník) |
+| datum vydání čísla | – | `datum vydání` (ve tvaru, v jakém je v Krameriu, např. `07.10.1904`) |
+| ročník, číslo, příloha | – | `ročník`, `číslo`, `příl. č.` |
+| stránka / rozsah stran | `strany` | `strany` |
+| identifikátory | `isbn`, `doi` | `issn`, `doi` (jen číslo, předponu „ISBN“/„ISSN“ doplňuje šablona) |
+| odkaz z parametru `ref` | `url` | `url` |
+
+Šablona `Citace periodika` vyhrazuje `titul` pro název článku a `den vydání`
+pouze pro číslo dne v měsíci (1–31). Proto se u čísla, ročníku i titulu
+periodika název posílá do `periodikum` a datum do `datum vydání`. Parametr
+`id` ani `via` šablona pro UUID nepoužívá, a proto se nevyplňují.
+
+Ukázky pro titul Světozor z České digitální knihovny (`url=https://api.ceskadigitalniknihovna.cz`):
+
+```
+periodikum (uuid:bd5fdc60-256c-11e5-8454-005056825209):
+{{ Citace periodika | periodikum = Světozor: světová kronika současná slovem i obrazem : časopis pro zábavu i poučení | místo = Praha | vydavatel = J. Otto | rok vydání = 1904-1943 | url = … }}
+
+ročník (uuid:74970240-2c9d-11e6-ae84-005056827e51):
+{{ Citace periodika | periodikum = Světozor: světová kronika současná slovem i obrazem : časopis pro zábavu i poučení | místo = Praha | vydavatel = J. Otto | ročník = 5 | rok vydání = 1904-1905 | url = … }}
+
+číslo (uuid:8f7a0e30-2cc1-11e6-b821-5ef3fc9bb22f):
+{{ Citace periodika | periodikum = Světozor: světová kronika současná slovem i obrazem : časopis pro zábavu i poučení | místo = Praha | vydavatel = J. Otto | ročník = 5 | číslo = 1 | datum vydání = 07.10.1904 | url = … }}
+
+stránka čísla (uuid:02f341c0-2d57-11e6-a344-5ef3fc9ae867):
+{{ Citace periodika | periodikum = Světozor: světová kronika současná slovem i obrazem : časopis pro zábavu i poučení | místo = Praha | vydavatel = J. Otto | ročník = 5 | číslo = 1 | datum vydání = 07.10.1904 | strany = [1] | url = … }}
+
+článek (uuid:12616e26-7a99-49ed-ad69-74bfd68c3a65):
+{{ Citace periodika | titul = Contents | periodikum = Československá psychologie: časopis pro psychologickou teorii a praxi | místo = Praha | vydavatel = Psychologický ústav AV ČR | ročník = 61 | číslo = 2 | datum vydání = 04.2017 | issn = 0009-062x | url = … }}
+```
+
+Vykreslení lze ověřit vložením výstupu do pískoviště na Wikipedii nebo přes
+`https://cs.wikipedia.org/w/api.php?action=parse&contentmodel=wikitext&prop=text&text=…`.
+
 ## Použití v [uživatelském rozhraní Krameria](https://github.com/ceskaexpedice/kramerius-web-client)
 
 Doplňte do `/assets/shared/globals.js`
@@ -99,6 +225,29 @@ npm run dev
 ```
 npm run start
 ```
+
+Aplikace běží na `http://localhost:3000`. Verze, přepínač produkčního
+režimu a adresa serveru pro OpenAPI dokumentaci jsou v objektu `config`
+v `src/index.ts`.
+
+### Testy
+
+Jednotkové testy (Jest + ts-jest) jsou v adresáři `tests` a pracují s MODS
+soubory v `src/test/testMods`:
+
+```
+npm test
+```
+
+Jeden konkrétní soubor:
+
+```
+npx jest tests/citationRoles.test.ts
+```
+
+Rychlou kontrolu citace proti živému Krameriu lze udělat spuštěnou aplikací,
+např.
+`http://localhost:3000/api/v1?url=https://api.kramerius.mzk.cz&uuid=uuid:869e4730-6c8b-11e2-8ed6-005056827e52&exp=all`.
 
 ### Zvýšení verze
 

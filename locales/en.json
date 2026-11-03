@@ -19,6 +19,7 @@
         "publisher": "vydavatel",
         "year": "rok vydání",
         "day": "den vydání",
+        "date": "datum vydání",
         "isbn": "isbn",
         "issn": "issn",
         "volume": "ročník",

@@ -285,10 +285,6 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.ris = `TY  - GEN\n`;
   }
 
-  if (authorOptions.filterByRoles) {
-    citation.wiki += `via = Kramerius | id = ${apiData['pid']} | `;
-  }
-
   // AUTHORS
   if (authors && model !== 'periodical') {
     if (authors.iso?.length > 0) {
@@ -313,7 +309,9 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.mla += `${removeTrailingDot(titleMono.txt)}. `;
     citation.mlahtml += `<i>${removeTrailingDot(titleMono.txt)}.</i> `;
     citation.bibtex += `title = {${removeTrailingDot(titleMono.txt)}}, `;
-    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(titleMono.txt)} | `;
+    // u šablony "Citace periodika" patří název periodika do parametru "periodikum", nikoliv "titul"
+    const wikiTitleKey = citation.wiki.startsWith(`{{ ${locale['wiki']['periodical']}`) ? 'journal' : 'title';
+    citation.wiki += `${locale['wiki'][wikiTitleKey]} = ${removeTrailingDot(titleMono.txt)} | `;
     citation.ris += `TI  - ${removeTrailingDot(titleMono.txt)}\n`;
     appendSecondaryResponsibility(authors);
   }
@@ -325,7 +323,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.mla += `${removeTrailingDot(title[0])}`;
     citation.mlahtml += `<i>${removeTrailingDot(title[0])}</i>`;
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
-    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
+    citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} |`;
     citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
     appendSecondaryResponsibility(authors);
   }
@@ -342,7 +340,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.mlahtml += `, ${title[1]}`;
     }
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
-    citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
+    citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} |`;
     citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
     appendSecondaryResponsibility(authors);
     
@@ -480,20 +478,24 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
   // ISBN (mla neobsahuje ISBN)
   if (isbn) {
+    // wiki, bibtex a RIS očekávají samotné číslo bez předpony "ISBN"
+    const isbnNumber = removeTrailingDot(isbn).replace(/^ISBN\s*/i, '');
     citation.iso690 += `${isbn} `;
     citation.iso690html += `${isbn} `;
-    citation.bibtex += `isbn = {${removeTrailingDot(isbn)}}, `;
-    citation.wiki += `${locale['wiki']['isbn']} = ${removeTrailingDot(isbn)}|`;
-    citation.ris += `SN  - ${removeTrailingDot(isbn)}\n`;
+    citation.bibtex += `isbn = {${isbnNumber}}, `;
+    citation.wiki += `${locale['wiki']['isbn']} = ${isbnNumber} | `;
+    citation.ris += `SN  - ${isbnNumber}\n`;
   }
 
   // ISSN
   if (issn) {
+    // wiki, bibtex a RIS očekávají samotné číslo bez předpony "ISSN"
+    const issnNumber = removeTrailingDot(issn).replace(/^ISSN\s*/i, '');
     citation.iso690 += `${issn} `;
     citation.iso690html += `${issn} `;
-    citation.bibtex += `isbn = {${removeTrailingDot(issn)}}, `;
-    citation.wiki += `${locale['wiki']['issn']} = ${removeTrailingDot(issn)}|`;
-    citation.ris += `SN  - ${removeTrailingDot(issn)}\n`;
+    citation.bibtex += `issn = {${issnNumber}}, `;
+    citation.wiki += `${locale['wiki']['issn']} = ${issnNumber} | `;
+    citation.ris += `SN  - ${issnNumber}\n`;
   }
 
   // AVAILIBILITY
