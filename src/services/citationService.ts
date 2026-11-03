@@ -323,7 +323,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.mla += `${removeTrailingDot(title[0])}`;
     citation.mlahtml += `<i>${removeTrailingDot(title[0])}</i>`;
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
-    citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} |`;
+    citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} | `;
     citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
     appendSecondaryResponsibility(authors);
   }
@@ -340,7 +340,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.mlahtml += `, ${title[1]}`;
     }
     citation.bibtex += `title = {${removeTrailingDot(title[0])}}, `;
-    citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} |`;
+    citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} | `;
     citation.ris += `T1  - ${removeTrailingDot(title[0])}\n`;
     appendSecondaryResponsibility(authors);
     
@@ -354,7 +354,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.mla += `${title[2]}. `;
       citation.mlahtml += `${title[2]}. `;
       citation.bibtex += `title = {${removeTrailingDot(title[2])}}, `;
-      citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[2])} |`;
+      citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[2])} | `;
       citation.ris += `T1  - ${removeTrailingDot(title[2])}\n`;
       appendSecondaryResponsibility(authors);
     }
@@ -365,7 +365,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.mla += `${title[0]}, `;
       citation.mlahtml += `<i>${title[0]}</i>, `;
       citation.bibtex += `journal = {${removeTrailingDot(title[0])}}, `;
-      citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} |`;
+      citation.wiki += `${locale['wiki']['journal']} = ${removeTrailingDot(title[0])} | `;
       citation.ris += `JF  - ${removeTrailingDot(title[0])}\n`;
     }
     // datum vydani
@@ -417,7 +417,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
       citation.mla += `${title[0]} `;
       citation.mlahtml += `<i>${title[0]}</i> `;
       citation.bibtex += `booktitle = {${removeTrailingDot(title[0])}}, `;
-      citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} |`;
+      citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} | `;
       citation.ris += `T2  - ${removeTrailingDot(title[0])}\n`;
       appendSecondaryResponsibility(authorsTitle);
     }
@@ -438,7 +438,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.iso690html += `${publication.iso} `;
     citation.mla += `${publication.mla} `;
     citation.mlahtml += `${publication.mla} `;
-    citation.bibtex += `${publication.bibtex} `;
+    citation.bibtex += `${publication.bibtex.trimEnd()} `;
     citation.wiki += `${publication.wiki}`;
     citation.ris += `${publication.ris}`;
   }

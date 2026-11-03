@@ -147,8 +147,8 @@ describe('parseModsAuthors', () => {
     );
 
     expect(result.secondary?.iso).toContain('Petr TVŮRCE (překl., il.).');
-    expect(result.wiki).toContain('translator-last1 = Tvůrce');
-    expect(result.wiki).toContain('others = Ilustroval: Petr Tvůrce');
+    expect(result.wiki).toContain('překladatelé = Petr Tvůrce');
+    expect(result.wiki).toContain('ilustrátoři = Petr Tvůrce');
     expect(result.ris).toContain('Role: trl, ill — Tvůrce, Petr');
   });
 

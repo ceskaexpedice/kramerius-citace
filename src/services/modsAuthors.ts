@@ -501,56 +501,70 @@ function formatSecondary(entries: CreatorEntry[], lang: string): { iso: string; 
   };
 }
 
-function formatWiki(entries: CreatorEntry[], secondary: CreatorEntry[], locale: any): string {
+// Modely, pro které citationService použije šablonu "Citace periodika" (max. 3 autoři),
+// ostatní jdou do "Citace monografie" (max. 5 autorů).
+const PERIODICAL_WIKI_MODELS = new Set([
+  'periodical', 'periodicalvolume', 'periodicalitem', 'supplement', 'article', 'soundunit', 'track',
+]);
+
+function wikiAuthorLimit(model = ''): number {
+  return PERIODICAL_WIKI_MODELS.has(model) ? 3 : 5;
+}
+
+function wikiNameList(entries: CreatorEntry[]): string {
+  // šablony přijímají nejvýše tři jména ve tvaru "Jméno Příjmení"
+  const names = entries.slice(0, 3).map(naturalName).join(', ');
+  return entries.length > 3 ? `${names} aj.` : names;
+}
+
+function formatWiki(entries: CreatorEntry[], secondary: CreatorEntry[], locale: any, model = ''): string {
+  const w = locale.wiki;
+  const periodical = PERIODICAL_WIKI_MODELS.has(model);
+  const maxAuthors = wikiAuthorLimit(model);
   let wiki = '';
-  entries.forEach((entry, index) => {
-    const number = index + 1;
+  entries.slice(0, maxAuthors).forEach((entry, index) => {
+    const suffix = index === 0 ? '' : String(index + 1);
     if (entry.nameType === 'personal') {
-      const suffix = number === 1 ? '' : number;
-      wiki += `${locale.wiki.surname}${suffix} = ${entry.family} | `;
-      if (entry.given) wiki += `${locale.wiki.name}${suffix} = ${entry.given} | `;
+      wiki += `${w.surname}${suffix} = ${entry.family} | `;
+      if (entry.given) wiki += `${w.name}${suffix} = ${entry.given} | `;
     } else {
-      wiki += `author${number} = ${entry.displayName} | `;
+      wiki += `${w.author}${suffix} = ${entry.displayName} | `;
     }
   });
+  if (entries.length > maxAuthors) {
+    wiki += `${w.coauthors} = aj. | `;
+  }
 
   const editors = secondary.filter((entry) => entry.slot === 'editor');
-  editors.forEach((entry, index) => {
-    const number = index + 1;
-    if (entry.nameType === 'personal') {
-      wiki += `editor-last${number} = ${entry.family} | `;
-      if (entry.given) wiki += `editor-first${number} = ${entry.given} | `;
-    } else {
-      wiki += `editor${number} = ${entry.displayName} | `;
-    }
-  });
-
   const contributors = secondary.filter((entry) => entry.slot === 'contributor');
   const translators = contributors.filter((entry) => entry.roleCodes.includes('trl'));
-  translators.forEach((entry, index) => {
-    const number = index + 1;
-    if (entry.nameType === 'personal') {
-      wiki += `translator-last${number} = ${entry.family} | `;
-      if (entry.given) wiki += `translator-first${number} = ${entry.given} | `;
-    } else {
-      wiki += `translator${number} = ${entry.displayName} | `;
-    }
-  });
+  const illustrators = contributors.filter((entry) => entry.roleCodes.includes('ill'));
+  const others: string[] = [];
 
-  const otherContributions = contributors.flatMap((entry) => {
-    const codes = contributionRoleCodes(entry).filter((code) => code !== 'trl');
-    if (codes.length === 0 && entry.roleCodes.includes('trl')) return [];
-    const effectiveCodes = codes.length > 0 ? codes : [''];
-    return effectiveCodes.map((code) => {
-      const label = code
-        ? (ROLE_LABELS.cs[code] || 'Příspěvek')
-        : 'Příspěvek';
-      return `${label}: ${naturalName(entry)}`;
+  if (editors.length > 0) {
+    if (periodical) {
+      // "Citace periodika" nemá parametr pro editory, patří do "další"
+      others.push(...editors.map((entry) => `${ROLE_LABELS.cs.edt}: ${naturalName(entry)}`));
+    } else {
+      wiki += `${w.editors} = ${wikiNameList(editors)} | `;
+    }
+  }
+  if (translators.length > 0) wiki += `${w.translators} = ${wikiNameList(translators)} | `;
+  if (illustrators.length > 0) wiki += `${w.illustrators} = ${wikiNameList(illustrators)} | `;
+
+  contributors.forEach((entry) => {
+    const codes = contributionRoleCodes(entry).filter((code) => code !== 'trl' && code !== 'ill');
+    if (codes.length === 0) {
+      if (entry.roleCodes.includes('trl') || entry.roleCodes.includes('ill')) return;
+      codes.push('');
+    }
+    codes.forEach((code) => {
+      const label = code ? (ROLE_LABELS.cs[code] || 'Příspěvek') : 'Příspěvek';
+      others.push(`${label}: ${naturalName(entry)}`);
     });
   });
-  if (otherContributions.length > 0) {
-    const others = otherContributions.join('; ');
-    wiki += `others = ${others} | `;
+  if (others.length > 0) {
+    wiki += `${w.others} = ${others.join('; ')} | `;
   }
   return wiki;
 }
@@ -639,7 +653,7 @@ function formatRoleAwareAuthors(
     mla,
     bibtex: bibtexAuthor,
     bibtexFields,
-    wiki: formatWiki(primary, [...editors, ...contributors], locale),
+    wiki: formatWiki(primary, [...editors, ...contributors], locale, options.model),
     ris,
     secondary: formatSecondary(secondary, lang),
     imprintPublishers: entries
@@ -657,8 +671,9 @@ function formatRoleAwareAuthors(
   };
 }
 
-function parseLegacyAuthors(names: any[], lang: string): ParsedAuthors {
+function parseLegacyAuthors(names: any[], lang: string, model = ''): ParsedAuthors {
   const locale = getLocale(lang);
+  const maxWikiAuthors = wikiAuthorLimit(model);
   const authorsList: string[] = [];
   const authorsListIso: string[] = [];
   let wikiAuthors = '';
@@ -688,17 +703,24 @@ function parseLegacyAuthors(names: any[], lang: string): ParsedAuthors {
       authorsList.push(`${family}, ${given}`);
       risAuthors += `AU  - ${family}, ${given}\n`;
       const suffix = i === 1 ? '' : i;
-      wikiAuthors += `${locale.wiki.surname}${suffix} = ${family} | ${locale.wiki.name}${suffix} = ${given} | `;
+      if (i <= maxWikiAuthors) {
+        wikiAuthors += `${locale.wiki.surname}${suffix} = ${family} | ${locale.wiki.name}${suffix} = ${given} | `;
+      }
     } else if (family || given) {
       const value = family || given;
       authorsListIso.push(value);
       authorsList.push(value);
       risAuthors += `AU  - ${value}\n`;
       const suffix = i === 1 ? '' : i;
-      wikiAuthors += `${locale.wiki.surname}${suffix} = ${value} | `;
+      if (i <= maxWikiAuthors) {
+        wikiAuthors += `${locale.wiki.surname}${suffix} = ${value} | `;
+      }
     }
     i += 1;
   });
+  if (authorsList.length > maxWikiAuthors) {
+    wikiAuthors += `${locale.wiki.coauthors} = aj. | `;
+  }
 
   if (authorsList.length === 0) return emptyAuthors();
   if (authorsList.length === 1) {
@@ -744,7 +766,7 @@ export async function parseModsAuthors(
 ): Promise<ParsedAuthors> {
   const names = getModsElement(getModsRecord(mods), 'name');
   if (!Array.isArray(names)) return emptyAuthors();
-  if (!options.filterByRoles) return parseLegacyAuthors(names, lang);
+  if (!options.filterByRoles) return parseLegacyAuthors(names, lang, options.model);
 
   const parsed = names
     .map((name: any, position: number) =>

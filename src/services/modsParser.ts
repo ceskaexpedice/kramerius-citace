@@ -11,6 +11,13 @@ function getModsRecord(mods: any): any {
     return getModsElement(collection, 'mods')?.[0];
 }
 
+// Textová hodnota elementu: xml2js vrací string, nebo objekt { _: text, $: atributy }, pokud má element atributy
+function textOf(node: any): string {
+    if (typeof node === 'string') return node.trim();
+    if (typeof node?._ === 'string') return node._.trim();
+    return '';
+}
+
 function getPageExtent(mods: any): any {
     const record = getModsRecord(mods);
     const relatedItem = getModsElement(record, 'relatedItem')?.[0];
@@ -52,12 +59,11 @@ export async function parseModsTitles(mods: any, lang: any): Promise<any> {
                 titlesList += (`${title}`);
             }
             if (subTitle && String(subTitle).length > 0) {
-                // console.log('subTitle', subTitle);
                 titlesList += (`: ${subTitle}`);
-            } else if (String(title).length > 0) {
-                if (!String(titlesList).endsWith('.')) {
-                    titlesList += ('.');
-                }
+            }
+            // název (případně s podnázvem) ukončíme tečkou, aby šel oddělit od čísla a názvu části
+            if ((String(title).length > 0 || String(subTitle).length > 0) && !String(titlesList).endsWith('.')) {
+                titlesList += ('.');
             }
             if (partNumber && String(partNumber).length > 0) {
                 if (!String(partNumber).startsWith('Díl') && !String(partNumber).startsWith('díl') && !String(partNumber).startsWith('část') && !String(partNumber).startsWith('Část')) {
@@ -159,18 +165,14 @@ export async function parsePeriodicalPublisher(modsData: any,
         // Získání vydavatele
         let publishers = getModsElement(publicationData, 'publisher');
         if (publishers && publishers.length > 0) {
-            publisher = publishers[0] || '';
+            publisher = textOf(publishers[0]);
             if (publisher && publisher.startsWith('[') && !publisher.endsWith(']')) {
                 publisher = publisher + ']';
             }
         }
         let dateIssued = getModsElement(publicationData, 'dateIssued') || '';
         if (dateIssued.length === 1) {
-            if (dateIssued[0]?._) {
-                dateIssuedString = dateIssued[0]?._;
-            } else {
-                dateIssuedString = dateIssued[0];
-            }
+            dateIssuedString = textOf(dateIssued[0]);
         } else if (dateIssued.length > 1) {
             dateIssued.forEach((date: any) => {
                 if (date && date?.$?.encoding === 'marc') {
@@ -230,7 +232,7 @@ export async function parsePeriodicalPublisher(modsData: any,
         iso += `${placeOfPublication}`;
         // mla 9 nepouziva misto vydani
         bibtex += `address = {${placeOfPublication}}, `;
-        wiki += ` ${locale['wiki']['place']} = ${placeOfPublication} | `;
+        wiki += `${locale['wiki']['place']} = ${placeOfPublication} | `;
         ris += `PP  - ${placeOfPublication}\n`;
         if (publisher && publisher.length > 0) {
             iso += `: `;
@@ -300,7 +302,10 @@ export async function parsePeriodicalPublisher(modsData: any,
         }
     }
     if (issueDate && issueDate.length > 0 && issueDate !== issue) {
-        mla += `${issueDate}`;
+        // u čísla a článku je datum už součástí názvu (parsePeriodicalTitle), v MLA se zde přidává jen u přílohy
+        if (apiData['model'] === 'supplement') {
+            mla += `, ${issueDate}`;
+        }
         bibtex += `date = {${issueDate}}, `;
         wiki += `${locale['wiki']['date']} = ${issueDate} | `;
         if (issueDate.length === 4) {
@@ -329,19 +334,21 @@ export async function parsePeriodicalPublisher(modsData: any,
         ris += `SP  - ${articlePageStart}\n`;
         if (articlePageEnd && articlePageEnd.length > 0 && articlePageEnd !== articlePageStart) {
             iso += `-${articlePageEnd}.`;
-            mla += `-${articlePageEnd}, `;
-            bibtex += `--${articlePageEnd}},`;
+            mla += `-${articlePageEnd}.`;
+            bibtex += `--${articlePageEnd}}, `;
             wiki += `-${articlePageEnd} | `;
             ris += `EP  - ${articlePageEnd}\n`;
         } else {
-            bibtex += `},`;
+            iso += '.';
+            mla += '.';
+            bibtex += `}, `;
             wiki += ` | `;
             ris += `EP  - ${articlePageStart}\n`;
         }
     } else if (pageNumber && pageNumber.length > 0) {
         iso += `, ${locale['page']} ${pageNumber}.`;
         mla += `, ${locale['page']} ${pageNumber}.`;
-        bibtex += `, pages = {${pageNumber}}`;
+        bibtex += `pages = {${pageNumber}}, `;
         wiki += `${locale['wiki']['pages']} = ${pageNumber} | `;
         ris += `SP  - ${pageNumber}\n`;
         ris += `EP  - ${pageNumber}\n`;
@@ -359,9 +366,6 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
     let locale = getLocale(lang);
     const originInfo = getModsElement(getModsRecord(mods), 'originInfo')?.[0];
     if (originInfo) {
-
-        if (!originInfo) return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''}; // Pokud nejsou k dispozici žádné nakladatelské údaje, vrátíme prázdný řetězec.
-
         // Získání místa vydání (první místo, kde není authority "marccountry")
         const places = getModsElement(originInfo, 'place');
         let placeOfPublication = '';
@@ -382,7 +386,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         let publishers = getModsElement(originInfo, 'publisher');
         let publisher = '';
         if (publishers && publishers.length > 0) {
-            publisher = publishers[0] || '';
+            publisher = textOf(publishers[0]);
             if (publisher && publisher.startsWith('[') && !publisher.endsWith(']')) {
                 publisher = publisher + ']';
             }
@@ -397,7 +401,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         let dateIssuedStringStart = '';
         let dateIssuedStringEnd = '';
         if (dateIssued.length === 1) {
-            dateIssuedString = dateIssued[0]; // Odstraníme mezery na začátku a konci
+            dateIssuedString = textOf(dateIssued[0]);
         } else if (dateIssued.length > 1) {
             dateIssued.forEach((date: any) => {
                 if (date && date?.$?.encoding === 'marc') {
@@ -414,11 +418,12 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         const otherDate = getModsElement(originInfo, 'dateOther') || '';
         let dateIssuedStringOther = '';
         if (otherDate.length > 0) {
-            dateIssuedStringOther = otherDate[0]._?.trim();
+            dateIssuedStringOther = textOf(otherDate[0]);
         }
 
         // Získání edice (volitelné)
-        const edition = getModsElement(originInfo, 'edition') || '';
+        const editions = getModsElement(originInfo, 'edition');
+        const edition = editions && editions.length > 0 ? textOf(editions[0]) : '';
 
         // Vytvoření výsledného řetězce
         let iso = '';
@@ -428,10 +433,10 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         let ris = '';
 
         if (edition) {
-            iso += `${edition[0].trim()}`; // Odstraníme mezery na začátku a konci
-            bibtex += `edition = {${edition[0].trim()}}, `; // Odstraníme mezery na začátku a konci
-            wiki += `${locale['wiki']['edition']} = ${edition[0].trim()} | `;
-            ris += `ET  - ${edition[0].trim()}\n`;
+            iso += `${edition}`;
+            bibtex += `edition = {${edition}}, `;
+            wiki += `${locale['wiki']['edition']} = ${edition} | `;
+            ris += `ET  - ${edition}\n`;
             if (!iso.endsWith('.')) {
                 iso += '.'; // Přidáme tečku, pokud řetězec nekončí tečkou
             }
@@ -505,8 +510,8 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
             wiki += `${locale['wiki']['pages']} = ${pageNumber} | `;
             ris += `SP  - ${pageNumber}\n`;
         } else {
-            iso += '.';
-            mla += '.';
+            if (iso) iso += '.';
+            if (mla) mla += '.';
         }
 
         // Pokud nemáme žádná data, vrátíme prázdný řetězec, jinak vrátíme výsledek
@@ -516,7 +521,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
                 'wiki': wiki,
                 'ris': ris};
     } else {
-        return {'iso': '', 'bibtex': '', 'wiki': '', 'ris': ''};
+        return {'iso': '', 'mla': '', 'bibtex': '', 'wiki': '', 'ris': ''};
     }
 }
 

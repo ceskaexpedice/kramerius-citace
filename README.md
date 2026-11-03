@@ -154,8 +154,10 @@ Mapování údajů na parametry šablony:
 
 | Údaj | `Citace monografie` | `Citace periodika` |
 | --- | --- | --- |
-| autoři | `příjmení`, `jméno`, `příjmení2`, `jméno2`, … (korporace `autor`, `autor2`, …) | stejně |
-| editoři, překladatelé | `editor-last`/`editor-first`, `translator-last`/`translator-first` | stejně |
+| autoři | `příjmení`, `jméno`, `příjmení2`, `jméno2`, … (korporace `autor`, `autor2`, …), nejvýš 5, další jako `spoluautoři = aj.` | stejně, nejvýš 3 |
+| editoři | `editoři` (Jméno Příjmení) | `další = Editoval: …` (šablona nemá parametr pro editory) |
+| překladatelé, ilustrátoři | `překladatelé`, `ilustrátoři` | stejně |
+| ostatní role | `další = Role: Jméno Příjmení; …` | stejně |
 | název dokumentu | `titul` | – |
 | název periodika | – | `periodikum` |
 | název článku | – | `titul` |
@@ -163,7 +165,7 @@ Mapování údajů na parametry šablony:
 | místo, vydavatel | `místo`, `vydavatel` | `místo`, `vydavatel` |
 | rok vydání (i rozmezí let) | `rok vydání` | `rok vydání` (titul, ročník) |
 | datum vydání čísla | – | `datum vydání` (ve tvaru, v jakém je v Krameriu, např. `07.10.1904`) |
-| ročník, číslo, příloha | – | `ročník`, `číslo`, `příl. č.` |
+| ročník, číslo (u přílohy její číslo) | – | `ročník`, `číslo` |
 | stránka / rozsah stran | `strany` | `strany` |
 | identifikátory | `isbn`, `doi` | `issn`, `doi` (jen číslo, předponu „ISBN“/„ISSN“ doplňuje šablona) |
 | odkaz z parametru `ref` | `url` | `url` |

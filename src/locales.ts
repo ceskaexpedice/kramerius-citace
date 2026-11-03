@@ -4,7 +4,8 @@ import path from 'path';
 const locales: Record<string, any> = {};
 
 function loadLocales() {
-  const localeFiles = ['cs.json', 'en.json'];  // přidáš další jazyky
+  const localesDir = path.join(__dirname, '../locales');
+  const localeFiles = fs.readdirSync(localesDir).filter((file) => file.endsWith('.json'));
   localeFiles.forEach((file) => {
     const langCode = file.split('.')[0];
     const filePath = path.join(__dirname, '../locales', file);

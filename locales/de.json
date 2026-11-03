@@ -24,9 +24,16 @@
         "issn": "issn",
         "volume": "ročník",
         "issue": "číslo",
+        "supplement": "číslo",
         "pages": "strany",
         "journal": "periodikum",
         "chapter": "kapitola",
-        "doi": "doi"
+        "doi": "doi",
+        "author": "autor",
+        "coauthors": "spoluautoři",
+        "editors": "editoři",
+        "translators": "překladatelé",
+        "illustrators": "ilustrátoři",
+        "others": "další"
     }
 }
