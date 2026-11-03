@@ -6,25 +6,24 @@ import { testEndpoint } from './test/testService';
 import swaggerUi from 'swagger-ui-express';
 
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 
 app.use(cors({
   origin: '*',
   methods: ['GET']
 }));
 
+// Konfigurace: verze se synchronizuje z package.json (scripts/sync-version.js),
+// ostatní hodnoty lze přepsat proměnnými prostředí PORT, NODE_ENV a PUBLIC_URL.
 const config = {
-  //TODO: use actual config, possibly from environment variables
-
   //dev
   //version : '1.3.6',
-  //production_build: false,
-  //documentation_api_base_url: 'http://localhost:3000/'
 
   //prod
   version : '1.3.6',
-  production_build: true,
-  documentation_api_base_url: 'https://citace.ceskadigitalniknihovna.cz/'
+  production_build: process.env.NODE_ENV !== 'development',
+  documentation_api_base_url: process.env.PUBLIC_URL
+    || (process.env.NODE_ENV === 'development' ? `http://localhost:${port}/` : 'https://citace.ceskadigitalniknihovna.cz/')
 }
 
 function initSwagger() { // API documentation

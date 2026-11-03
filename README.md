@@ -30,7 +30,7 @@ Produkční nasazení: [https://citace.ceskadigitalniknihovna.cz](https://citace
 
 ## Popis API
 
-Aplikace poslouchá na portu `3000` (pevně v `src/index.ts`) a nabízí tyto cesty:
+Aplikace poslouchá na portu `3000` (lze změnit proměnnou prostředí `PORT`) a nabízí tyto cesty:
 
 | Cesta | Popis |
 | --- | --- |
@@ -60,7 +60,7 @@ Např. `http://localhost:3000/api/v1?url=https://api.kramerius.mzk.cz&uuid=uuid:
   v citaci (`s.`, `roč.`, `č.`, `a` …). Názvy parametrů wiki šablony jsou vždy
   české, protože cílem je česká Wikipedie.
 - **ref**: URL digitálního dokumentu, které se připojí na konec citace
-  („Dostupné z: …“, `url = {…}`, `url = …`, `L1  - …`). Když chybí nebo je
+  („Dostupné z: …“, `url = {…}`, `url = …`, `UR  - …`). Když chybí nebo je
   prázdný, citace odkaz neobsahuje.
 - **debug**: `true | false` (default `false`). Odpověď je JSON a kromě citace
   obsahuje i zdrojová data z API (`apiSource`), MODS (`modsSource`) a při
@@ -73,8 +73,10 @@ Např. `http://localhost:3000/api/v1?url=https://api.kramerius.mzk.cz&uuid=uuid:
 | Kód | Příčina |
 | --- | --- |
 | `400` | Neznámá hodnota `exp` nebo `format` |
-| `422` | Chybí `uuid` nebo `url` |
-| `500` | Objekt se nepodařilo načíst z Krameria nebo selhalo zpracování |
+| `404` | Objekt s daným `uuid` v daném Krameriu neexistuje |
+| `422` | Chybí `uuid` nebo `url`, nebo jde o stránku pod nepodporovaným typem objektu |
+| `502` | API Krameria neodpovídá nebo vrátilo neplatná data |
+| `500` | Selhalo zpracování citace |
 
 #### Podporované modely
 
@@ -85,8 +87,8 @@ se cituje podle svého rodiče a doplní se číslo stránky.
 | --- | --- | --- |
 | `monograph`, `monographunit`, `convolute`, `map`, `graphic`, `sheetmusic`, `archive`, `manuscript`, `soundrecording`, `collection` | monografie | `Citace monografie` |
 | `internalpart` | kapitola v monografii | `Citace monografie` |
-| `periodical` | titul periodika | `Citace periodika` |
-| `periodicalvolume`, `periodicalitem`, `supplement` | ročník / číslo / příloha periodika | `Citace periodika` |
+| `periodical` | titul periodika (BibTeX `@periodical`, jen biblatex) | `Citace periodika` |
+| `periodicalvolume`, `periodicalitem`, `supplement` | ročník / číslo / příloha periodika (BibTeX `@article`) | `Citace periodika` |
 | `article` | článek v periodiku | `Citace periodika` |
 | `soundunit`, `track` | zvuková jednotka / stopa (jako ročník periodika) | `Citace periodika` |
 | ostatní | obecný záznam (BibTeX `@misc`, RIS `GEN`) | `Citace monografie` |
@@ -140,7 +142,7 @@ ris:     TY  - BOOK
          PP  - Praha
          PB  - SNDK
          PY  - 1959
-         L1  - https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
+         UR  - https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
          ER  -
 ```
 
@@ -228,9 +230,16 @@ npm run dev
 npm run start
 ```
 
-Aplikace běží na `http://localhost:3000`. Verze, přepínač produkčního
-režimu a adresa serveru pro OpenAPI dokumentaci jsou v objektu `config`
-v `src/index.ts`.
+Aplikace běží na `http://localhost:3000`. Konfigurace přes proměnné prostředí:
+
+| Proměnná | Význam | Výchozí hodnota |
+| --- | --- | --- |
+| `PORT` | port, na kterém aplikace poslouchá | `3000` |
+| `NODE_ENV` | `development` vypne produkční režim a nastaví adresu dokumentace na localhost | produkční režim |
+| `PUBLIC_URL` | veřejná adresa serveru, která se vkládá do OpenAPI dokumentace | `https://citace.ceskadigitalniknihovna.cz/` |
+
+Verze aplikace je v objektu `config` v `src/index.ts` a synchronizuje se
+z `package.json` (viz níže).
 
 ### Testy
 
@@ -368,15 +377,20 @@ Aplikace pak běží na
 
 http://localhost:1234
 
+Vnitřní port a ostatní konfiguraci lze předat proměnnými prostředí:
+```shell
+docker run -p 8080:8080 -e PORT=8080 -e PUBLIC_URL=https://citace.example.org/ trinera/citation-api:latest
+```
+
 ## API
 Webová dokumentace je dostupná na nasezené aplikaci, na cestě `/api-docs`.
 
 https://citace.ceskadigitalniknihovna.cz/api-docs/
 
 ### build OpenAPI dokumentace
-Dokumentace se upravuje v souborech v adresáři `openapi-src`. Následně je potřeba z těchto soborů vygenerovat výsledný soubor `openapi.json` takto:
-`swagger-cli bundle openapi-src/__api.yaml -o openapi.json`
+Dokumentace se upravuje v souborech v adresáři `openapi-src`. Následně je potřeba z těchto souborů vygenerovat výsledný soubor `openapi.json` takto:
+`npx swagger-cli bundle openapi-src/__api.yaml -o openapi.json`
 
 ### validace openapi.json
 Po větším množství změn je vhodně validovat soubor `openapi.json`. I nevalidní soubor sice může fungovat, ale jen částečně. Validaci spustíme takto:
-`swagger-cli validate openapi.json`
+`npx swagger-cli validate openapi.json`

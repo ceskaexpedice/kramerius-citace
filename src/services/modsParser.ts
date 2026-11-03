@@ -26,6 +26,70 @@ function getPageExtent(mods: any): any {
     return getModsElement(relatedPart, 'extent')?.[0] ?? getModsElement(recordPart, 'extent')?.[0];
 }
 
+// ================== PARSE ORIGIN INFO ==================
+
+interface OriginInfo {
+    place: string;
+    publisher: string;
+    dateIssued: string;
+    dateStart: string;
+    dateEnd: string;
+    dateOther: string;
+    edition: string;
+}
+
+// Doplní chybějící hranatou závorku u údajů typu "[s.n." / "s.n.]"
+function closeBrackets(value: string): string {
+    if (value.startsWith('[') && !value.endsWith(']')) return value + ']';
+    if (value.endsWith(']') && !value.startsWith('[')) return '[' + value;
+    return value;
+}
+
+// Společné čtení nakladatelských údajů z mods:originInfo pro monografie i periodika
+function parseOriginInfo(originInfo: any): OriginInfo {
+    const result: OriginInfo = { place: '', publisher: '', dateIssued: '', dateStart: '', dateEnd: '', dateOther: '', edition: '' };
+    if (!originInfo) return result;
+
+    // první místo vydání, které není kód země (authority "marccountry")
+    const places = getModsElement(originInfo, 'place');
+    if (Array.isArray(places)) {
+        const relevantPlace = places.find((place: any) => getModsElement(place, 'placeTerm')?.[0]?.$?.authority !== 'marccountry');
+        result.place = closeBrackets(textOf(getModsElement(relevantPlace, 'placeTerm')?.[0]));
+    }
+
+    const publishers = getModsElement(originInfo, 'publisher');
+    if (Array.isArray(publishers) && publishers.length > 0) {
+        result.publisher = closeBrackets(textOf(publishers[0]));
+    }
+
+    // jediné datum bereme tak, jak je; u více dat bereme jen ta s encoding="marc" (start/end = rozmezí)
+    const dates = getModsElement(originInfo, 'dateIssued');
+    if (Array.isArray(dates)) {
+        if (dates.length === 1) {
+            result.dateIssued = textOf(dates[0]);
+        } else {
+            dates.forEach((date: any) => {
+                if (date?.$?.encoding !== 'marc') return;
+                const value = textOf(date);
+                if (date.$.point === 'start') result.dateStart = value;
+                else if (date.$.point === 'end') result.dateEnd = value;
+                else result.dateIssued = value;
+            });
+        }
+    }
+
+    const otherDates = getModsElement(originInfo, 'dateOther');
+    if (Array.isArray(otherDates) && otherDates.length > 0) {
+        result.dateOther = textOf(otherDates[0]);
+    }
+
+    const editions = getModsElement(originInfo, 'edition');
+    if (Array.isArray(editions) && editions.length > 0) {
+        result.edition = textOf(editions[0]);
+    }
+    return result;
+}
+
 // ================== PARSE MODS TITLES ==================
 
 export async function parseModsTitles(mods: any, lang: any): Promise<any> {
@@ -134,59 +198,19 @@ export async function parsePeriodicalPublisher(modsData: any,
                                                modsIssue?: any, 
                                                pageNumber?: any): Promise<any> {
     let locale = getLocale(lang);
-    const publicationData = getModsElement(getModsRecord(modsTitle), 'originInfo')?.[0];
-    let publisher = '';
-    let placeOfPublication = '';
+    const origin = parseOriginInfo(getModsElement(getModsRecord(modsTitle), 'originInfo')?.[0]);
+    const publisher = origin.publisher;
+    const placeOfPublication = origin.place;
+    const dateIssuedString = origin.dateIssued;
+    const dateIssuedStringStart = origin.dateStart;
+    const dateIssuedStringEnd = origin.dateEnd;
     let volume = '';
     let volumeDate = '';
     let issue = '';
     let issueDate = '';
     let articlePageStart = '';
     let articlePageEnd = '';
-    let dateIssuedString = '';
-    let dateIssuedStringStart = '';
-    let dateIssuedStringEnd = '';
 
-    if (publicationData) {
-        // console.log('publicationData', JSON.stringify(publicationData, null, 2));
-        // Získání místa vydání (první místo, kde není authority "marccountry")
-        const places = getModsElement(publicationData, 'place');
-        if (places) {
-            // Najdeme první místo bez authority "marccountry"
-            const relevantPlace = places.find((place: any) => getModsElement(place, 'placeTerm')?.[0]?.$?.authority !== "marccountry");
-            if (relevantPlace) {
-                const placeTerm = getModsElement(relevantPlace, 'placeTerm')?.[0];
-                placeOfPublication = placeTerm?._ ?? placeTerm ?? '';
-                if (placeOfPublication.startsWith('[') && !placeOfPublication.endsWith(']')) {
-                    placeOfPublication = placeOfPublication + ']';
-                }
-            }
-        }
-        // Získání vydavatele
-        let publishers = getModsElement(publicationData, 'publisher');
-        if (publishers && publishers.length > 0) {
-            publisher = textOf(publishers[0]);
-            if (publisher && publisher.startsWith('[') && !publisher.endsWith(']')) {
-                publisher = publisher + ']';
-            }
-        }
-        let dateIssued = getModsElement(publicationData, 'dateIssued') || '';
-        if (dateIssued.length === 1) {
-            dateIssuedString = textOf(dateIssued[0]);
-        } else if (dateIssued.length > 1) {
-            dateIssued.forEach((date: any) => {
-                if (date && date?.$?.encoding === 'marc') {
-                    if (date?.$?.point === 'start') {
-                        dateIssuedStringStart = date._.trim() || '';
-                    } else if (date?.$?.point === 'end') {
-                        dateIssuedStringEnd = date._.trim() || '';
-                    } else {
-                        dateIssuedString = date._.trim() || '';
-                    }
-                }
-            });
-        }
-    }
     // Získání dat o volume
     if (apiData['model'] === 'periodicalvolume') {
         volume = apiData['part.number.str'] || '';
@@ -254,12 +278,12 @@ export async function parsePeriodicalPublisher(modsData: any,
     }
     if (apiData['model'] === 'internalpart' || apiData['model'] === 'soundunit' || apiData['model'] === 'track') {
         if (dateIssuedString && dateIssuedString.length > 0) {
+            // v MLA předchází název, v ISO vydavatel (pokud je)
+            mla += `, ${dateIssuedString}`;
             if (publisher && publisher.length > 0) {
                 iso += `, ${dateIssuedString}`;
-                mla += `, ${dateIssuedString}`;
             } else {
                 iso += `${dateIssuedString}`;
-                mla += `${dateIssuedString}`;
             }
             bibtex += `year = {${dateIssuedString}}, `;
             wiki += `${locale['wiki']['year']} = ${dateIssuedString} | `;
@@ -353,7 +377,8 @@ export async function parsePeriodicalPublisher(modsData: any,
         ris += `SP  - ${pageNumber}\n`;
         ris += `EP  - ${pageNumber}\n`;
     } else {
-        iso += '.';
+        // MLA ukončujeme vždy (předchází název), ISO jen pokud něco obsahuje
+        if (iso) iso += '.';
         mla += '.';
     }
 
@@ -366,64 +391,14 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
     let locale = getLocale(lang);
     const originInfo = getModsElement(getModsRecord(mods), 'originInfo')?.[0];
     if (originInfo) {
-        // Získání místa vydání (první místo, kde není authority "marccountry")
-        const places = getModsElement(originInfo, 'place');
-        let placeOfPublication = '';
-
-        if (places) {
-            // Najdeme první místo bez authority "marccountry"
-            const relevantPlace = places.find((place: any) => getModsElement(place, 'placeTerm')?.[0]?.$?.authority !== "marccountry");
-            if (relevantPlace) {
-                const placeTerm = getModsElement(relevantPlace, 'placeTerm')?.[0];
-                placeOfPublication = placeTerm?._ ?? placeTerm ?? '';
-                if (placeOfPublication.startsWith('[') && !placeOfPublication.endsWith(']')) {
-                    placeOfPublication = placeOfPublication + ']';
-                }
-            }
-        }
-
-        // Získání vydavatele
-        let publishers = getModsElement(originInfo, 'publisher');
-        let publisher = '';
-        if (publishers && publishers.length > 0) {
-            publisher = textOf(publishers[0]);
-            if (publisher && publisher.startsWith('[') && !publisher.endsWith(']')) {
-                publisher = publisher + ']';
-            }
-            if (publisher && publisher.endsWith(']') && !publisher.startsWith('[')) {
-                publisher = '[' + publisher;
-            }
-        }
-
-        // Získání roku vydání
-        const dateIssued = getModsElement(originInfo, 'dateIssued') || '';
-        let dateIssuedString = '';
-        let dateIssuedStringStart = '';
-        let dateIssuedStringEnd = '';
-        if (dateIssued.length === 1) {
-            dateIssuedString = textOf(dateIssued[0]);
-        } else if (dateIssued.length > 1) {
-            dateIssued.forEach((date: any) => {
-                if (date && date?.$?.encoding === 'marc') {
-                    if (date?.$?.point === 'start') {
-                        dateIssuedStringStart = date._.trim() || '';
-                    } else if (date?.$?.point === 'end') {
-                        dateIssuedStringEnd = date._.trim() || '';
-                    } else {
-                        dateIssuedString = date._.trim() || '';
-                    }
-                }
-            });
-        }
-        const otherDate = getModsElement(originInfo, 'dateOther') || '';
-        let dateIssuedStringOther = '';
-        if (otherDate.length > 0) {
-            dateIssuedStringOther = textOf(otherDate[0]);
-        }
-
-        // Získání edice (volitelné)
-        const editions = getModsElement(originInfo, 'edition');
-        const edition = editions && editions.length > 0 ? textOf(editions[0]) : '';
+        const origin = parseOriginInfo(originInfo);
+        const placeOfPublication = origin.place;
+        const publisher = origin.publisher;
+        const dateIssuedString = origin.dateIssued;
+        const dateIssuedStringStart = origin.dateStart;
+        const dateIssuedStringEnd = origin.dateEnd;
+        const dateIssuedStringOther = origin.dateOther;
+        const edition = origin.edition;
 
         // Vytvoření výsledného řetězce
         let iso = '';

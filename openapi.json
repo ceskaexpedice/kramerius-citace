@@ -73,7 +73,7 @@
             "name": "exp",
             "in": "query",
             "required": false,
-            "description": "citation format",
+            "description": "citation format (default iso690); \"all\" returns a JSON object with every format",
             "schema": {
               "type": "string",
               "enum": [
@@ -83,27 +83,29 @@
                 "wiki",
                 "ris",
                 "all"
-              ]
+              ],
+              "default": "iso690"
             }
           },
           {
             "name": "format",
             "in": "query",
             "required": false,
-            "description": "citation format",
+            "description": "output format (default txt); html is available for iso690 and mla only",
             "schema": {
               "type": "string",
               "enum": [
                 "txt",
                 "html"
-              ]
+              ],
+              "default": "txt"
             }
           },
           {
             "name": "lang",
             "in": "query",
             "required": false,
-            "description": "citation language",
+            "description": "citation language (default cs)",
             "schema": {
               "type": "string",
               "enum": [
@@ -111,26 +113,25 @@
                 "en",
                 "sk",
                 "de"
-              ]
+              ],
+              "default": "cs"
             }
           },
           {
             "name": "ref",
             "in": "query",
             "required": false,
-            "description": "reference to source in the citation",
+            "description": "URL of the digital document appended to the citation (\"Dostupné z\"); omitted when empty",
             "schema": {
               "type": "string",
-              "enum": [
-                "https://www.digitalniknihovna.cz/mzk/uuid/uuid:309d4d59-4eb8-4eb3-8606-94d3aa5a64bd"
-              ]
+              "example": "https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52"
             }
           },
           {
             "name": "debug",
             "in": "query",
             "required": false,
-            "description": "debug mode with additional information (kramerius api, mods)",
+            "description": "debug mode with additional information (kramerius api, mods, role diagnostics)",
             "schema": {
               "type": "boolean"
             }
@@ -139,7 +140,7 @@
             "name": "roles",
             "in": "query",
             "required": false,
-            "description": "classify MODS names by roles, infer missing roles and map primary, editor, contributor, imprint and excluded slots to citation formats",
+            "description": "take MODS name roles into account (default true); false keeps the legacy processing of all names",
             "schema": {
               "type": "boolean",
               "default": true
@@ -164,15 +165,15 @@
                     },
                     "mla": {
                       "type": "string",
-                      "example": "ČAPEK, Karel a ČAPEK, Josef. Devatero pohádek, dvě navíc. SNDK, 1959."
+                      "example": "Čapek, Karel, and Josef Čapek. Devatero pohádek, dvě navíc. SNDK, 1959."
                     },
                     "mlahtml": {
                       "type": "string",
-                      "example": "ČAPEK, Karel a ČAPEK, Josef. <i>Devatero pohádek, dvě navíc.</i> SNDK, 1959."
+                      "example": "Čapek, Karel, and Josef Čapek. <i>Devatero pohádek, dvě navíc.</i> SNDK, 1959."
                     },
                     "bibtex": {
                       "type": "string",
-                      "example": "@book{uuid:869e4730-6c8b-11e2-8ed6-005056827e52, author = {Čapek, Karel and Čapek, Josef}, title = {Devatero pohádek, dvě navíc}, edition = {1. vyd.}, address = {Praha}, publisher = {SNDK}, year = {1959}}"
+                      "example": "@book{uuid:869e4730-6c8b-11e2-8ed6-005056827e52, author = {{Čapek}, Karel and {Čapek}, Josef}, title = {Devatero pohádek, dvě navíc}, edition = {1. vyd.}, address = {Praha}, publisher = {SNDK}, year = {1959}}"
                     },
                     "wiki": {
                       "type": "string",
@@ -200,8 +201,20 @@
               }
             }
           },
+          "400": {
+            "description": "Unsupported exp or format value"
+          },
+          "404": {
+            "description": "Object not found in the given Kramerius"
+          },
+          "422": {
+            "description": "Missing uuid or url parameter, or unsupported object type"
+          },
           "500": {
             "description": "Internal server error"
+          },
+          "502": {
+            "description": "Kramerius API could not be reached or returned invalid data"
           }
         }
       }

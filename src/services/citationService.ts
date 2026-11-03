@@ -5,18 +5,38 @@ import { parseStringPromise } from 'xml2js';
 import { parseModsAuthors, ParseModsAuthorsOptions, parseModsTitles, parseModsPublisher, parseModsCartographics, parsePhysicalDescription, parsePeriodicalTitle, parsePeriodicalPublisher, parseDoi } from './modsParser';
 
 
+// Chyba s HTTP stavem, kterou getCitation vrátí klientovi
+export class CitationError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = 'CitationError';
+  }
+}
+
 // Funkce pro stažení dat přes API
 async function fetchItemData(url: string, uuid: string) {
   const api_url = `${url}/search/api/client/v7.0/search?q=pid:%22${uuid}%22&rows=1`;
   const mods_url = `${url}/search/api/client/v7.0/items/${uuid}/metadata/mods`;
 
+  let api_response;
+  let mods_response;
   try {
-    const api_response = await axios.get(api_url);
-    const mods_response = await axios.get(mods_url);
+    api_response = await axios.get(api_url);
+    mods_response = await axios.get(mods_url);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      throw new CitationError(404, `Object ${uuid} not found in ${url}`);
+    }
+    throw new CitationError(502, `Error fetching data for ${uuid} from ${url}`);
+  }
+  if (!api_response.data?.response?.docs?.length) {
+    throw new CitationError(404, `Object ${uuid} not found in ${url}`);
+  }
+  try {
     const parsedMods = await parseStringPromise(mods_response.data, { explicitArray: true });
     return [api_response.data, parsedMods];
   } catch (error) {
-    throw new Error('Data not found or error in fetching data');
+    throw new CitationError(502, `Invalid MODS record for ${uuid}`);
   }
 }
 
@@ -79,8 +99,9 @@ export async function getCitation(req: Request, res: Response) {
       }
     }
   } catch (error) {
-    console.log('Error', error);
-    return res.status(500).json({ error: (error as any).message });
+    const status = error instanceof CitationError ? error.status : 500;
+    if (status >= 500) console.log('Error', error);
+    return res.status(status).json({ error: (error as any).message });
   }
 }
 
@@ -247,6 +268,10 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     availibility = soundunitData.availibility;
   }
 
+  if (model === 'page' && !titleMono && !title) {
+    throw new CitationError(422, `Unsupported parent model '${apiData['own_parent.model']}' for page ${apiData['pid']}`);
+  }
+
   // =========   SESTAVENI CITACE ==========
   if (model === 'monograph' || model === 'convolute' || model === 'monographunit' || (model === 'page' && (apiData['own_parent.model'] === 'monograph' || apiData['own_parent.model'] === 'convolute' || apiData['own_parent.model'] === 'monographunit'))) {
     const editorOnly = authorOptions.filterByRoles
@@ -264,7 +289,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.wiki = `{{ ${locale['wiki']['periodical']} | `;
     citation.ris = `TY  - JFULL\n`;
   } else if (model === 'periodicalvolume' || model === 'periodicalitem' || model === 'supplement' || (model === 'page' && (apiData['own_parent.model'] === 'periodicalvolume' || apiData['own_parent.model'] === 'periodicalitem' || apiData['own_parent.model'] === 'supplement'))) {
-    citation.bibtex = `@periodical{${apiData['pid']}, `;
+    citation.bibtex = `@article{${apiData['pid']}, `;
     citation.wiki = `{{ ${locale['wiki']['periodical']} | `;
     citation.ris = `TY  - JOUR\n`;
   } else if (model === 'article' || (model === 'page' && apiData['own_parent.model'] === 'article')) {
@@ -414,8 +439,8 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     if (title[0] && title[0].length > 0) {
       citation.iso690 += `${title[0]}. `;
       citation.iso690html += `<i>${title[0]}.</i> `;
-      citation.mla += `${title[0]} `;
-      citation.mlahtml += `<i>${title[0]}</i> `;
+      citation.mla += `${title[0]}`;
+      citation.mlahtml += `<i>${title[0]}</i>`;
       citation.bibtex += `booktitle = {${removeTrailingDot(title[0])}}, `;
       citation.wiki += `${locale['wiki']['title']} = ${removeTrailingDot(title[0])} | `;
       citation.ris += `T2  - ${removeTrailingDot(title[0])}\n`;
@@ -434,11 +459,15 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
 
   // PUBLICATION
   if (publication) {
-    citation.iso690 += `${publication.iso} `;
-    citation.iso690html += `${publication.iso} `;
-    citation.mla += `${publication.mla} `;
-    citation.mlahtml += `${publication.mla} `;
-    citation.bibtex += `${publication.bibtex.trimEnd()} `;
+    if (publication.iso) {
+      citation.iso690 += `${publication.iso} `;
+      citation.iso690html += `${publication.iso} `;
+    }
+    if (publication.mla) {
+      citation.mla += `${publication.mla} `;
+      citation.mlahtml += `${publication.mla} `;
+    }
+    if (publication.bibtex) citation.bibtex += `${publication.bibtex.trimEnd()} `;
     citation.wiki += `${publication.wiki}`;
     citation.ris += `${publication.ris}`;
   }
@@ -472,7 +501,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.mla += `https://doi.org/${doi}. `;
     citation.mlahtml += `<a href='https://doi.org/${doi}' target='_blank'>https://doi.org/${doi}</a>. `;
     citation.bibtex += `doi = {${doi}}, `;
-    citation.wiki += `${locale['wiki']['doi']} = ${doi}|`;
+    citation.wiki += `${locale['wiki']['doi']} = ${doi} | `;
     citation.ris += `DO  - ${doi}\n`;
   }
 
@@ -504,9 +533,9 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
     citation.iso690html += locale['available'] + `<a href='${availibility}' target='_blank'>${availibility}</a>`;
     citation.bibtex += `url = {${availibility}}`;
     citation.wiki += `url = ${availibility} `;
-    citation.ris += `L1  - ${availibility}\n`;
-    citation.mla += `Digitální knihovna, ${availibility}`;
-    citation.mlahtml += `Digitální knihovna, <a href='${availibility}' target='_blank'>${availibility}</a>. `;
+    citation.ris += `UR  - ${availibility}\n`;
+    citation.mla += `${locale['digital_library']}, ${availibility}`;
+    citation.mlahtml += `${locale['digital_library']}, <a href='${availibility}' target='_blank'>${availibility}</a>. `;
   } else {
     if (citation.iso690) {
       citation.iso690 = citation.iso690.trim();
@@ -529,7 +558,7 @@ async function generateCitation(data: any, url: string, lang: string, ref: strin
   }
 
   citation.bibtex += `}`;
-  citation.wiki += `}}`;
+  citation.wiki = `${citation.wiki.trimEnd()} }}`;
   citation.ris += `ER  - \n\n`;
   // https://www.digitalniknihovna.cz/mzk/uuid/uuid:869e4730-6c8b-11e2-8ed6-005056827e52
 
