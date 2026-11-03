@@ -126,6 +126,40 @@ describe('parseModsAuthors', () => {
     expect(result.diagnostics?.namesExcluded).toBe(3);
   });
 
+  it('zahrne autora s nameTitleGroup a odstraní jeho duplicitní zápis bez role', async () => {
+    const author = name('Schell', 'Margarete', ['aut'], 'personal', 'primary');
+    author.$.nameTitleGroup = '1';
+    const duplicate: any = { $: { type: 'personal' }, 'mods:namePart': ['Schell, Margarete'] };
+    const names = [author, name('Škultéty', 'Michaela', ['trl']), name('Hübl', 'Dušan', ['edt']), duplicate];
+
+    const result = await parseModsAuthors(mods(names), 'cs', { filterByRoles: true });
+    expect(result.iso).toBe('SCHELL, Margarete.');
+    expect(result.wiki).toBe('příjmení = Schell | jméno = Margarete | editoři = Dušan Hübl | překladatelé = Michaela Škultéty | ');
+    expect(result.diagnostics?.dropped).toHaveLength(1);
+
+    const legacy = await parseModsAuthors(mods(names), 'cs');
+    expect(legacy.iso).toBe('SCHELL, Margarete; ŠKULTÉTY, Michaela a HÜBL, Dušan.');
+  });
+
+  it('neuvádí ilustrátora podruhé jako obecný příspěvek, známou další roli ano', async () => {
+    const result = await parseModsAuthors(
+      mods([name('Brambilla', 'Giovanni', ['aut']), name('Landerer', 'Ferdinand', ['ill', 'egr'])]),
+      'cs',
+      { filterByRoles: true },
+    );
+    expect(result.wiki).toBe('příjmení = Brambilla | jméno = Giovanni | ilustrátoři = Ferdinand Landerer | další = Ryl: Ferdinand Landerer | ');
+    expect(result.bibtexFields).toContain('note = {illustrated by Ferdinand Landerer; engraved by Ferdinand Landerer}');
+    expect(result.secondary?.iso).toBe('Ferdinand LANDERER (il., rytec).');
+
+    const unknown = await parseModsAuthors(
+      mods([name('Brambilla', 'Giovanni', ['aut']), name('Landerer', 'Ferdinand', ['ill', 'xyz'])]),
+      'cs',
+      { filterByRoles: true },
+    );
+    expect(unknown.wiki).toBe('příjmení = Brambilla | jméno = Giovanni | ilustrátoři = Ferdinand Landerer | ');
+    expect(unknown.bibtexFields).toContain('note = {illustrated by Ferdinand Landerer}');
+  });
+
   it('u více rolí vybere slot s nejvyšší prioritou', async () => {
     const result = await parseModsAuthors(
       mods([name('Novák', 'Jan', ['pbl', 'aut'])]),

@@ -90,6 +90,21 @@ function parseOriginInfo(originInfo: any): OriginInfo {
     return result;
 }
 
+// Wiki šablona za parametr "vydání" sama doplňuje "vyd.", takže posíláme jen pořadové číslo
+const CZECH_ORDINALS: Record<string, number> = {
+    'první': 1, 'druhé': 2, 'třetí': 3, 'čtvrté': 4, 'páté': 5,
+    'šesté': 6, 'sedmé': 7, 'osmé': 8, 'deváté': 9, 'desáté': 10,
+};
+export function wikiEditionNumber(edition: string): string {
+    const digits = edition.match(/\d+/);
+    if (digits) return digits[0];
+    const lower = edition.toLowerCase();
+    for (const [word, number] of Object.entries(CZECH_ORDINALS)) {
+        if (lower.includes(word)) return String(number);
+    }
+    return edition;
+}
+
 // ================== PARSE MODS TITLES ==================
 
 export async function parseModsTitles(mods: any, lang: any): Promise<any> {
@@ -196,10 +211,12 @@ export async function parsePeriodicalPublisher(modsData: any,
                                                modsVolume?: any, 
                                                apiDataIssue?: any, 
                                                modsIssue?: any, 
-                                               pageNumber?: any): Promise<any> {
+                                               pageNumber?: any,
+                                               fallbackPublisher?: string): Promise<any> {
     let locale = getLocale(lang);
     const origin = parseOriginInfo(getModsElement(getModsRecord(modsTitle), 'originInfo')?.[0]);
-    const publisher = origin.publisher;
+    // nakladatel chybí v originInfo, ale je zapsaný jako mods:name s rolí pbl
+    const publisher = origin.publisher || fallbackPublisher || '';
     const placeOfPublication = origin.place;
     const dateIssuedString = origin.dateIssued;
     const dateIssuedStringStart = origin.dateStart;
@@ -387,13 +404,14 @@ export async function parsePeriodicalPublisher(modsData: any,
 
 // ================== PARSE MODS PUBLISHER ==================
 
-export async function parseModsPublisher(mods: any, lang: any, pageNumber?: string): Promise<any> {
+export async function parseModsPublisher(mods: any, lang: any, pageNumber?: string, fallbackPublisher?: string): Promise<any> {
     let locale = getLocale(lang);
     const originInfo = getModsElement(getModsRecord(mods), 'originInfo')?.[0];
     if (originInfo) {
         const origin = parseOriginInfo(originInfo);
         const placeOfPublication = origin.place;
-        const publisher = origin.publisher;
+        // nakladatel chybí v originInfo, ale je zapsaný jako mods:name s rolí pbl
+        const publisher = origin.publisher || fallbackPublisher || '';
         const dateIssuedString = origin.dateIssued;
         const dateIssuedStringStart = origin.dateStart;
         const dateIssuedStringEnd = origin.dateEnd;
@@ -410,7 +428,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         if (edition) {
             iso += `${edition}`;
             bibtex += `edition = {${edition}}, `;
-            wiki += `${locale['wiki']['edition']} = ${edition} | `;
+            wiki += `${locale['wiki']['edition']} = ${wikiEditionNumber(edition)} | `;
             ris += `ET  - ${edition}\n`;
             if (!iso.endsWith('.')) {
                 iso += '.'; // Přidáme tečku, pokud řetězec nekončí tečkou
@@ -481,7 +499,7 @@ export async function parseModsPublisher(mods: any, lang: any, pageNumber?: stri
         if (pageNumber && pageNumber.length > 0) {
             iso += `, ${locale['page']} ${pageNumber}.`;
             mla += `, ${locale['page']} ${pageNumber}.`;
-            bibtex += `pages = {${pageNumber}}`;
+            bibtex += `pages = {${pageNumber}}, `;
             wiki += `${locale['wiki']['pages']} = ${pageNumber} | `;
             ris += `SP  - ${pageNumber}\n`;
         } else {

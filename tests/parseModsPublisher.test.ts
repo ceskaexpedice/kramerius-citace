@@ -71,7 +71,7 @@ describe('parseModsPublisher', () => {
       'mods:edition': [{ _: '1. vyd.', $: { lang: 'cs' } }],
     }), 'cs');
     expect(result.iso).toBe('1. vyd. Praha: Odeon, 1959.');
-    expect(result.wiki).toBe('vydání = 1. vyd. | místo = Praha | vydavatel = Odeon | rok vydání = 1959 | ');
+    expect(result.wiki).toBe('vydání = 1 | místo = Praha | vydavatel = Odeon | rok vydání = 1959 | ');
   });
 
   it('použije rozmezí let z dateIssued point="start"/"end"', async () => {
@@ -102,6 +102,28 @@ describe('parseModsPublisher', () => {
       'mods:dateIssued': ['2022'],
     }), 'cs', '15');
     expect(result.iso).toBe('Nakladatelství, 2022, s. 15.');
+    expect(result.bibtex).toBe('publisher = {Nakladatelství}, year = {2022}, pages = {15}, ');
     expect(result.wiki).toBe('vydavatel = Nakladatelství | rok vydání = 2022 | strany = 15 | ');
+  });
+
+  it('použije náhradního nakladatele, pokud v originInfo chybí', async () => {
+    const result = await parseModsPublisher(modsWithOriginInfo({
+      'mods:dateIssued': ['1956'],
+      'mods:edition': ['1. vydání'],
+    }), 'cs', undefined, 'Státní pedagogické nakladatelství');
+    expect(result.iso).toBe('1. vydání. Státní pedagogické nakladatelství, 1956.');
+    expect(result.mla).toBe('Státní pedagogické nakladatelství, 1956.');
+    expect(result.bibtex).toBe('edition = {1. vydání}, publisher = {Státní pedagogické nakladatelství}, year = {1956}, ');
+  });
+
+  it('do wiki posílá jen pořadové číslo vydání', async () => {
+    for (const [edition, expected] of [['1. vyd.', '1'], ['Vydání první', '1'], ['2., opr. vyd.', '2'], ['Třetí vydání', '3'], ['Nové vydání', 'Nové vydání']]) {
+      const result = await parseModsPublisher(modsWithOriginInfo({
+        'mods:publisher': ['Nakladatel'],
+        'mods:edition': [edition],
+      }), 'cs');
+      expect(result.wiki).toBe(`vydání = ${expected} | vydavatel = Nakladatel | `);
+      expect(result.iso).toBe(`${edition}. Nakladatel.`.replace('.. ', '. '));
+    }
   });
 });

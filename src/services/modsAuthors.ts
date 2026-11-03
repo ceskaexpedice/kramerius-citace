@@ -480,6 +480,17 @@ function isoContributionLabels(entry: CreatorEntry, lang: string): string[] {
     : [lang === 'cs' ? 'přispěvatel' : 'contributor'];
 }
 
+// Popisky pro role, které nemají v cílovém formátu vlastní pole (ta předává `excluded`).
+// Obecný popisek "Příspěvek" se použije jen u jména bez jakékoliv známé role, které není uvedeno jinde.
+function otherContributionLabels(entry: CreatorEntry, lang: string, excluded: string[]): string[] {
+  const labels = ROLE_LABELS[lang] || ROLE_LABELS.en;
+  const codes = contributionRoleCodes(entry).filter((code) => !excluded.includes(code));
+  const known = codes.map((code) => labels[code]).filter(Boolean);
+  if (known.length > 0) return [...new Set(known)];
+  if (entry.roleCodes.some((code) => excluded.includes(code))) return [];
+  return [lang === 'cs' ? 'Příspěvek' : 'contributions by'];
+}
+
 function isoSecondaryName(entry: CreatorEntry): string {
   if (entry.nameType !== 'personal') return entry.displayName;
   return [entry.given, entry.family.toUpperCase(), entry.suffix]
@@ -553,13 +564,8 @@ function formatWiki(entries: CreatorEntry[], secondary: CreatorEntry[], locale: 
   if (illustrators.length > 0) wiki += `${w.illustrators} = ${wikiNameList(illustrators)} | `;
 
   contributors.forEach((entry) => {
-    const codes = contributionRoleCodes(entry).filter((code) => code !== 'trl' && code !== 'ill');
-    if (codes.length === 0) {
-      if (entry.roleCodes.includes('trl') || entry.roleCodes.includes('ill')) return;
-      codes.push('');
-    }
-    codes.forEach((code) => {
-      const label = code ? (ROLE_LABELS.cs[code] || 'Příspěvek') : 'Příspěvek';
+    // překladatelé a ilustrátoři mají ve wiki vlastní parametry
+    otherContributionLabels(entry, 'cs', ['trl', 'ill']).forEach((label) => {
       others.push(`${label}: ${naturalName(entry)}`);
     });
   });
@@ -608,16 +614,9 @@ function formatRoleAwareAuthors(
     .filter((entry) => entry.roleCodes.includes('trl'))
     .map(formatBibtexName)
     .join(' and ');
+  // překladatel má v BibTeXu vlastní pole, ostatní role jdou do note
   const notes = contributors
-    .flatMap((entry) => {
-      const codes = contributionRoleCodes(entry).filter((code) => code !== 'trl');
-      if (codes.length === 0 && entry.roleCodes.includes('trl')) return [];
-      const effectiveCodes = codes.length > 0 ? codes : [''];
-      return effectiveCodes.map((code) => {
-        const label = code ? (ROLE_LABELS.en[code] || 'contributions by') : 'contributions by';
-        return `${label} ${naturalName(entry)}`;
-      });
-    })
+    .flatMap((entry) => otherContributionLabels(entry, 'en', ['trl']).map((label) => `${label} ${naturalName(entry)}`))
     .join('; ');
 
   let bibtexFields = '';
@@ -680,8 +679,8 @@ function parseLegacyAuthors(names: any[], lang: string, model = ''): ParsedAutho
   let risAuthors = '';
   let i = 1;
 
+  const seen = new Set<string>();
   names.forEach((name: any) => {
-    if (name.$?.nameTitleGroup) return;
     const nameType = name.$?.type;
     if (String(nameType || '').toLowerCase() === 'conference') return;
     const namePart = getModsElement(name, 'namePart');
@@ -697,6 +696,11 @@ function parseLegacyAuthors(names: any[], lang: string, model = ''): ParsedAutho
       if (part.$?.type === 'family' && part._) family = part._;
       if (part.$?.type === 'given' && part._) given = part._;
     });
+
+    // záznam může obsahovat totéž jméno dvakrát (např. autor u unifikovaného názvu a znovu bez role)
+    const key = normalizeNameKey(`${family}, ${given}`);
+    if (key && seen.has(key)) return;
+    seen.add(key);
 
     if (family && given) {
       authorsListIso.push(nameType !== 'corporate' ? `${family.toUpperCase()}, ${given}` : `${family}, ${given}`);
@@ -768,9 +772,10 @@ export async function parseModsAuthors(
   if (!Array.isArray(names)) return emptyAuthors();
   if (!options.filterByRoles) return parseLegacyAuthors(names, lang, options.model);
 
+  // jména s nameTitleGroup (vazba na unifikovaný název) jsou plnohodnotní tvůrci, typicky hlavní autor;
+  // případný duplicitní zápis téhož jména odstraní deduplicate()
   const parsed = names
-    .map((name: any, position: number) =>
-      name.$?.nameTitleGroup ? null : parseNameParts(name, position))
+    .map((name: any, position: number) => parseNameParts(name, position))
     .filter((entry): entry is CreatorEntry => Boolean(entry));
   const deduplicated = deduplicate(parsed);
   const optionGenres = Array.isArray(options.genre)

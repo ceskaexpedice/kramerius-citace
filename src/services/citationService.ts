@@ -581,7 +581,7 @@ async function getMonographicData(data: any, url: string, lang: string, ref: str
   const modsData = data[1];
   let authors = await parseModsAuthors(modsData, lang, authorOptions);
   let title = await parseModsTitles(modsData, lang);
-  let publication = await parseModsPublisher(modsData, lang, pageNumber);
+  let publication = await parseModsPublisher(modsData, lang, pageNumber, authors.imprintPublishers?.[0]);
   let scale = await parseModsCartographics(modsData, lang);
   let physicalDesc = await parsePhysicalDescription(modsData, lang);
   let isbn = '';
@@ -611,7 +611,7 @@ async function getPeriodicalVolumeData(data: any, url: string, lang: string, ref
   let authors = await parseModsAuthors(modsData, lang, authorOptions);
   let authorsTitle = await parseModsAuthors(modsTitle, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
-  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, null, pageNumber);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, null, pageNumber, authorsTitle.imprintPublishers?.[0]);
   let issn = '';
   if (apiDataTitle['id_issn'] !== undefined) {
     issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
@@ -637,8 +637,9 @@ async function getPeriodicalIssueData(data: any, url: string, lang: string, ref:
 
   // Vygenerování částí citace
   let authors = await parseModsAuthors(modsData, lang, authorOptions);
+  let authorsTitle = await parseModsAuthors(modsTitle, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
-  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, null, null, pageNumber);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, null, null, pageNumber, authorsTitle.imprintPublishers?.[0]);
   let issn = '';
   if (apiDataTitle['id_issn'] !== undefined) {
     issn = 'ISSN ' + apiDataTitle['id_issn'][0] + '.' || '';
@@ -669,8 +670,9 @@ async function getPeriodicalArticleData(data: any, url: string, lang: string, re
 
   // Vygenerování částí citace
   let authors = await parseModsAuthors(modsData, lang, authorOptions);
+  let authorsTitle = await parseModsAuthors(modsTitle, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
-  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, apiDataIssue, modsIssue);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, apiDataVolume, modsVolume, apiDataIssue, modsIssue, undefined, authorsTitle.imprintPublishers?.[0]);
   let doi = await parseDoi(modsData);
   let issn = '';
   if (apiDataTitle['id_issn'] !== undefined) {
@@ -694,7 +696,7 @@ async function getInternalPartData(data: any, url: string, lang: string, ref: st
   let authorsChapter = await parseModsAuthors(modsData, lang, authorOptions);
   let authorsTitle = await parseModsAuthors(modsTitle, lang, authorOptions);
   let title = await parsePeriodicalTitle(modsData, apiData, lang);
-  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, pageNumber);
+  let publication = await parsePeriodicalPublisher(modsData, apiData, lang, apiDataTitle, modsTitle, null, null, null, null, pageNumber, authorsTitle.imprintPublishers?.[0]);
   let isbn = '';
   if (apiDataTitle['id_isbn'] !== undefined) {
     isbn = 'ISBN ' + apiDataTitle['id_isbn'][0] + '.' || '';
