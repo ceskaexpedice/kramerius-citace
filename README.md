@@ -227,6 +227,7 @@ npm run dev
 
 ### Spuštění (produkční)
 ```
+npm run build
 npm run start
 ```
 

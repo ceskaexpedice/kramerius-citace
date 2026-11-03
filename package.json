@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
-    "start": "ts-node src/index.ts",
+    "build": "tsc && cp -r src/test/testMods dist/test/",
+    "start": "node dist/index.js",
     "sync-version": "node scripts/sync-version.js",
     "bump-version-patch": "node scripts/bump-version.js patch",
     "bump-version-minor": "node scripts/bump-version.js minor",
@@ -17,26 +18,26 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/node": "^22.5.4",
     "axios": "^1.7.7",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "swagger-cli": "^4.0.4",
     "swagger-ui": "^5.17.14",
     "swagger-ui-express": "^5.0.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.4",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/jest": "^29.5.13",
+    "@types/node": "^22.5.4",
     "@types/swagger-ui": "^3.52.4",
-    "@types/swagger-ui-express": "^4.1.7",
+    "@types/swagger-ui-express": "^4.1.8",
     "@types/xml2js": "^0.4.14",
     "jest": "^29.7.0",
     "nodemon": "^3.1.4",
-    "ts-jest": "^29.2.5"
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
   }
 }
