@@ -17,10 +17,10 @@ app.use(cors({
 // ostatní hodnoty lze přepsat proměnnými prostředí PORT, NODE_ENV a PUBLIC_URL.
 const config = {
   //dev
-  //version : '1.3.6',
+  //version : '1.3.7',
 
   //prod
-  version : '1.3.6',
+  version : '1.3.7',
   production_build: process.env.NODE_ENV !== 'development',
   documentation_api_base_url: process.env.PUBLIC_URL
     || (process.env.NODE_ENV === 'development' ? `http://localhost:${port}/` : 'https://citace.ceskadigitalniknihovna.cz/')
